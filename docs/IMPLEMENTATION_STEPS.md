@@ -887,607 +887,1201 @@ document.getElementById('manualLong').addEventListener('click', async () => {
 
 ---
 
-## 🎯 Phase 8: 기술적 지표 계산 (6시간)
+## 🎯 Phase 8: 텔레그램 연동 시스템 (4시간)
 
 ### 📋 목표
-볼린저 밴드 등 기술적 지표 계산 및 신호 생성
+텔레그램 봇 API를 통한 외부 신호 수신 및 자동매매 실행
 
 ### 🛠️ 구현 단계
 
-#### 8-1. 기본 함수 구현 (2시간)
+#### 8-1. 텔레그램 봇 API 연동 (1.5시간)
 ```javascript
-// utils/indicators.js
-class TechnicalIndicators {
-  constructor() {
-    this.priceHistory = [];
-    this.maxHistory = 100; // 최대 100개 데이터 보관
+// utils/telegram.js
+class TelegramBot {
+  constructor(botToken, chatId) {
+    this.botToken = botToken;
+    this.chatId = chatId;
+    this.baseUrl = `https://api.telegram.org/bot${botToken}`;
+    this.lastUpdateId = 0;
   }
   
-  // 가격 데이터 추가
-  addPrice(price, timestamp = Date.now()) {
-    this.priceHistory.push({ price, timestamp });
-    
-    // 최대 개수 초과 시 오래된 데이터 제거
-    if (this.priceHistory.length > this.maxHistory) {
-      this.priceHistory.shift();
+  // 봇 연결 테스트
+  async testConnection() {
+    try {
+      const response = await fetch(`${this.baseUrl}/getMe`);
+      const data = await response.json();
+      
+      if (data.ok) {
+        console.log('텔레그램 봇 연결 성공:', data.result.username);
+        return { success: true, botInfo: data.result };
+      } else {
+        throw new Error(data.description);
+      }
+    } catch (error) {
+      console.error('텔레그램 봇 연결 실패:', error);
+      return { success: false, error: error.message };
     }
   }
   
-  // 단순 이동평균 (SMA) 계산
-  calculateSMA(period = 20) {
-    if (this.priceHistory.length < period) {
-      return null;
+  // 새 메시지 가져오기 (폴링)
+  async getUpdates() {
+    try {
+      const url = `${this.baseUrl}/getUpdates?offset=${this.lastUpdateId + 1}&timeout=30`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.ok && data.result.length > 0) {
+        const messages = data.result;
+        this.lastUpdateId = messages[messages.length - 1].update_id;
+        
+        // 지정된 채팅에서 온 메시지만 필터링
+        const relevantMessages = messages.filter(msg => 
+          msg.message && 
+          msg.message.chat.id.toString() === this.chatId.toString()
+        );
+        
+        return relevantMessages.map(msg => ({
+          messageId: msg.message.message_id,
+          text: msg.message.text,
+          timestamp: msg.message.date * 1000,
+          updateId: msg.update_id
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('메시지 가져오기 실패:', error);
+      return [];
     }
-    
-    const recentPrices = this.priceHistory.slice(-period);
-    const sum = recentPrices.reduce((acc, item) => acc + item.price, 0);
-    return sum / period;
   }
   
-  // 표준편차 계산
-  calculateStandardDeviation(period = 20) {
-    if (this.priceHistory.length < period) {
-      return null;
+  // 메시지 전송 (알림용)
+  async sendMessage(text) {
+    try {
+      const response = await fetch(`${this.baseUrl}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: this.chatId,
+          text: text,
+          parse_mode: 'HTML'
+        })
+      });
+      
+      const data = await response.json();
+      return data.ok;
+    } catch (error) {
+      console.error('메시지 전송 실패:', error);
+      return false;
     }
-    
-    const sma = this.calculateSMA(period);
-    const recentPrices = this.priceHistory.slice(-period);
-    
-    const squaredDifferences = recentPrices.map(item => 
-      Math.pow(item.price - sma, 2)
-    );
-    
-    const variance = squaredDifferences.reduce((acc, val) => acc + val, 0) / period;
-    return Math.sqrt(variance);
-  }
-  
-  // 볼린저 밴드 계산
-  calculateBollingerBands(period = 20, multiplier = 2) {
-    const sma = this.calculateSMA(period);
-    const stdDev = this.calculateStandardDeviation(period);
-    
-    if (!sma || !stdDev) {
-      return null;
-    }
-    
-    return {
-      upper: sma + (stdDev * multiplier),
-      middle: sma,
-      lower: sma - (stdDev * multiplier),
-      currentPrice: this.getCurrentPrice()
-    };
-  }
-  
-  getCurrentPrice() {
-    return this.priceHistory.length > 0 
-      ? this.priceHistory[this.priceHistory.length - 1].price 
-      : null;
   }
 }
 ```
 
-#### 8-2. 신호 생성 시스템 (2시간)
+#### 8-2. 다중 심볼 신호 파싱 시스템 (1시간)
 ```javascript
-class TradingSignals {
-  constructor() {
-    this.indicators = new TechnicalIndicators();
-    this.lastSignal = null;
-    this.signalCooldown = 60000; // 1분 쿨다운
+// utils/signalParser.js
+class SignalParser {
+  constructor(userSymbol = null) {
+    this.userSymbol = userSymbol; // 사용자가 설정한 심볼 (예: "BTC", "ETH")
+    this.validSignals = ['BUY', 'SELL', 'LONG', 'SHORT'];
   }
   
-  // 볼린저 밴드 신호 생성
-  generateBollingerSignal() {
-    const bb = this.indicators.calculateBollingerBands();
-    if (!bb) return null;
+  // 사용자 심볼 설정
+  setUserSymbol(symbol) {
+    this.userSymbol = symbol ? symbol.toUpperCase().trim() : null;
+    console.log('사용자 심볼 설정:', this.userSymbol);
+  }
+  
+  // 텔레그램 메시지에서 거래 신호 추출 (심볼 필터링 포함)
+  parseSignal(messageText) {
+    if (!messageText) return null;
     
-    const { upper, lower, currentPrice } = bb;
-    let signal = null;
+    const text = messageText.toUpperCase().trim();
+    console.log('신호 파싱 시도:', text);
     
-    // 매수 신호: 가격이 하단선 아래로
-    if (currentPrice < lower) {
-      signal = {
-        type: 'BUY',
-        reason: 'Price below Bollinger Lower Band',
-        price: currentPrice,
-        confidence: this.calculateConfidence(currentPrice, lower, 'below'),
-        timestamp: Date.now()
-      };
+    // 다양한 신호 패턴 매칭
+    const patterns = [
+      // "BTC Long" 또는 "ETH Short" (심볼이 맨 앞)
+      /^([A-Z]{2,10})\s+(LONG|SHORT|BUY|SELL)(?:\s+@\s*([0-9,.]+))?/,
+      // "Long BTC" 또는 "Short ETH" (액션이 맨 앞)
+      /^(LONG|SHORT|BUY|SELL)\s+([A-Z]{2,10})(?:\s+@\s*([0-9,.]+))?/,
+      // "BUY BTCUSDT @ 43250" (기존 형식)
+      /^(BUY|SELL|LONG|SHORT)\s+([A-Z]+(?:USDT)?)\s*(?:@\s*([0-9,.]+))?/,
+      // "BTC" (심볼만, 기본 액션 없음)
+      /^([A-Z]{2,10})$/
+    ];
+    
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
+      const match = text.match(pattern);
+      
+      if (match) {
+        let symbol, action, price;
+        
+        // 패턴별로 매칭 결과 해석
+        switch (i) {
+          case 0: // "BTC Long"
+            symbol = match[1];
+            action = this.normalizeAction(match[2]);
+            price = match[3] ? parseFloat(match[3].replace(/,/g, '')) : null;
+            break;
+            
+          case 1: // "Long BTC"
+            action = this.normalizeAction(match[1]);
+            symbol = match[2];
+            price = match[3] ? parseFloat(match[3].replace(/,/g, '')) : null;
+            break;
+            
+          case 2: // "BUY BTCUSDT"
+            action = this.normalizeAction(match[1]);
+            symbol = this.extractBaseSymbol(match[2]);
+            price = match[3] ? parseFloat(match[3].replace(/,/g, '')) : null;
+            break;
+            
+          case 3: // "BTC" (심볼만)
+            symbol = match[1];
+            action = null; // 액션 없음
+            price = null;
+            break;
+        }
+        
+        // 사용자 설정 심볼과 매칭 확인
+        if (!this.isSymbolMatch(symbol)) {
+          console.log(`심볼 불일치: 메시지="${symbol}", 설정="${this.userSymbol}"`);
+          continue; // 다음 패턴 시도
+        }
+        
+        const signal = {
+          action: action,
+          symbol: symbol,
+          price: price,
+          timestamp: Date.now(),
+          originalText: messageText,
+          confidence: this.calculateConfidence(match, i),
+          matched: true // 심볼 매칭됨
+        };
+        
+        if (this.validateSignal(signal)) {
+          console.log('유효한 신호 파싱됨:', signal);
+          return signal;
+        }
+      }
     }
     
-    // 매도 신호: 가격이 중앙선 위로 (또는 상단선 근처)
-    else if (currentPrice > bb.middle) {
-      signal = {
-        type: 'SELL',
-        reason: 'Price above Bollinger Middle Band',
-        price: currentPrice,
-        confidence: this.calculateConfidence(currentPrice, bb.middle, 'above'),
-        timestamp: Date.now()
-      };
-    }
-    
-    // 쿨다운 체크
-    if (signal && this.isSignalValid(signal)) {
-      this.lastSignal = signal;
-      return signal;
-    }
-    
+    console.log('신호 파싱 실패 또는 심볼 불일치:', text);
     return null;
   }
   
-  calculateConfidence(currentPrice, referencePrice, direction) {
-    const difference = Math.abs(currentPrice - referencePrice);
-    const percentage = (difference / referencePrice) * 100;
+  // 사용자 설정 심볼과 메시지 심볼 매칭 확인
+  isSymbolMatch(messageSymbol) {
+    if (!this.userSymbol || !messageSymbol) return false;
     
-    // 차이가 클수록 신뢰도 높음 (최대 95%)
-    return Math.min(95, 50 + (percentage * 10));
+    const userSym = this.userSymbol.toUpperCase();
+    const msgSym = messageSymbol.toUpperCase();
+    
+    // 정확한 매칭
+    if (userSym === msgSym) return true;
+    
+    // 부분 매칭 (예: 사용자="BTC", 메시지="BTCUSDT")
+    if (msgSym.includes(userSym)) return true;
+    if (userSym.includes(msgSym)) return true;
+    
+    return false;
   }
   
-  isSignalValid(signal) {
-    if (!this.lastSignal) return true;
+  // BTCUSDT에서 BTC 추출
+  extractBaseSymbol(fullSymbol) {
+    const commonPairs = ['USDT', 'BUSD', 'USD', 'KRW', 'BTC', 'ETH'];
     
-    // 쿨다운 체크
-    const timeDiff = signal.timestamp - this.lastSignal.timestamp;
-    if (timeDiff < this.signalCooldown) return false;
+    for (const pair of commonPairs) {
+      if (fullSymbol.endsWith(pair)) {
+        return fullSymbol.replace(pair, '');
+      }
+    }
     
-    // 같은 타입 신호 연속 방지
-    if (signal.type === this.lastSignal.type) return false;
+    return fullSymbol; // 추출 실패 시 원본 반환
+  }
+  
+  // 액션 정규화 (BUY/LONG -> long, SELL/SHORT -> short)
+  normalizeAction(action) {
+    switch (action.toUpperCase()) {
+      case 'BUY':
+      case 'LONG':
+        return 'long';
+      case 'SELL':
+      case 'SHORT':
+        return 'short';
+      default:
+        return null;
+    }
+  }
+  
+  // 신호 유효성 검증
+  validateSignal(signal) {
+    // 액션 검증
+    if (!signal.action || !['long', 'short'].includes(signal.action)) {
+      console.warn('유효하지 않은 액션:', signal.action);
+      return false;
+    }
+    
+    // 심볼 검증 (선택사항)
+    if (this.validSymbols.length > 0 && signal.symbol) {
+      const symbolValid = this.validSymbols.some(validSymbol => 
+        signal.symbol.includes(validSymbol)
+      );
+      if (!symbolValid) {
+        console.warn('지원하지 않는 심볼:', signal.symbol);
+        // 경고만 하고 계속 진행 (유연성 확보)
+      }
+    }
+    
+    // 가격 검증
+    if (signal.price && (signal.price <= 0 || signal.price > 1000000)) {
+      console.warn('유효하지 않은 가격:', signal.price);
+      return false;
+    }
     
     return true;
+  }
+  
+  // 신뢰도 계산
+  calculateConfidence(match) {
+    let confidence = 70; // 기본 신뢰도
+    
+    // 심볼이 명시된 경우 +10
+    if (match[2]) confidence += 10;
+    
+    // 가격이 명시된 경우 +10
+    if (match[3]) confidence += 10;
+    
+    // 최대 95%
+    return Math.min(95, confidence);
   }
 }
 ```
 
-#### 8-3. 실시간 모니터링 시스템 (1.5시간)
+#### 8-3. 심볼 기반 자동실행 시스템 (1시간)
 ```javascript
-class AutoTradingEngine {
+// utils/autoTrader.js
+class TelegramAutoTrader {
   constructor() {
-    this.signals = new TradingSignals();
+    this.telegramBot = null;
+    this.signalParser = new SignalParser();
     this.isRunning = false;
-    this.monitoringInterval = null;
-    this.priceUpdateInterval = null;
+    this.pollingInterval = null;
+    this.pollingDelay = 3000; // 3초 간격
+    this.lastProcessedMessageId = 0;
+    this.userSymbol = null; // 사용자 설정 심볼
   }
   
+  // 시스템 초기화 (심볼 설정 포함)
+  async initialize(botToken, chatId, userSymbol = null) {
+    this.telegramBot = new TelegramBot(botToken, chatId);
+    
+    // 사용자 심볼 설정
+    this.setUserSymbol(userSymbol);
+    
+    // 연결 테스트
+    const connectionTest = await this.telegramBot.testConnection();
+    if (!connectionTest.success) {
+      throw new Error(`텔레그램 연결 실패: ${connectionTest.error}`);
+    }
+    
+    console.log('텔레그램 자동매매 시스템 초기화 완료');
+    console.log('설정된 심볼:', this.userSymbol);
+    return connectionTest;
+  }
+  
+  // 사용자 심볼 설정
+  setUserSymbol(symbol) {
+    this.userSymbol = symbol ? symbol.toUpperCase().trim() : null;
+    this.signalParser.setUserSymbol(this.userSymbol);
+    console.log('사용자 심볼 업데이트:', this.userSymbol);
+  }
+  
+  // 자동매매 시작
   start() {
-    if (this.isRunning) return;
+    if (this.isRunning) {
+      console.warn('이미 실행 중입니다');
+      return;
+    }
+    
+    if (!this.telegramBot) {
+      throw new Error('텔레그램 봇이 초기화되지 않았습니다');
+    }
     
     this.isRunning = true;
-    console.log('자동매매 엔진 시작');
+    console.log('텔레그램 폴링 시작 (3초 간격)');
     
-    // 가격 데이터 수집 (3초마다)
-    this.priceUpdateInterval = setInterval(() => {
-      this.updatePriceData();
-    }, 3000);
+    // 폴링 시작
+    this.pollingInterval = setInterval(async () => {
+      await this.pollMessages();
+    }, this.pollingDelay);
     
-    // 신호 모니터링 (10초마다)
-    this.monitoringInterval = setInterval(() => {
-      this.checkSignals();
-    }, 10000);
+    // 상태 알림 (심볼 정보 포함)
+    const symbolInfo = this.userSymbol ? ` (${this.userSymbol} 전용)` : '';
+    this.telegramBot.sendMessage(`🤖 자동매매 시스템이 시작되었습니다${symbolInfo}.`);
   }
   
+  // 자동매매 중단
   stop() {
+    if (!this.isRunning) return;
+    
     this.isRunning = false;
     
-    if (this.priceUpdateInterval) {
-      clearInterval(this.priceUpdateInterval);
-      this.priceUpdateInterval = null;
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
     
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-      this.monitoringInterval = null;
-    }
+    console.log('텔레그램 폴링 중단');
     
-    console.log('자동매매 엔진 중단');
+    // 상태 알림
+    if (this.telegramBot) {
+      this.telegramBot.sendMessage('⏸️ 자동매매 시스템이 중단되었습니다.');
+    }
   }
   
-  async updatePriceData() {
+  // 메시지 폴링 및 처리
+  async pollMessages() {
     try {
-      // 현재 가격 가져오기 (기존 PriceExtractor 활용)
-      const result = await chrome.storage.local.get(['currentPrice']);
-      if (result.currentPrice) {
-        this.signals.indicators.addPrice(result.currentPrice);
-        console.log('가격 데이터 업데이트:', result.currentPrice);
+      const messages = await this.telegramBot.getUpdates();
+      
+      if (messages.length > 0) {
+        console.log(`${messages.length}개의 새 메시지 수신`);
+        
+        for (const message of messages) {
+          // 중복 처리 방지
+          if (message.messageId <= this.lastProcessedMessageId) {
+            continue;
+          }
+          
+          await this.processMessage(message);
+          this.lastProcessedMessageId = message.messageId;
+        }
       }
     } catch (error) {
-      console.error('가격 데이터 업데이트 실패:', error);
+      console.error('메시지 폴링 오류:', error);
     }
   }
   
-  async checkSignals() {
+  // 개별 메시지 처리
+  async processMessage(message) {
     try {
-      const signal = this.signals.generateBollingerSignal();
+      console.log('메시지 처리:', message.text);
+      
+      // 신호 파싱
+      const signal = this.signalParser.parseSignal(message.text);
       
       if (signal) {
-        console.log('거래 신호 생성:', signal);
+        console.log('거래 신호 감지:', signal);
+        
+        // 액션이 없는 경우 (심볼만 있는 경우) 처리
+        if (!signal.action) {
+          console.log('액션 없는 신호 무시:', signal.symbol);
+          return;
+        }
+        
+        // 매크로 실행
         await this.executeSignal(signal);
+        
+        // 실행 알림 (심볼 매칭 정보 포함)
+        await this.telegramBot.sendMessage(
+          `✅ <b>${signal.action.toUpperCase()}</b> 신호 실행 완료\n` +
+          `심볼: ${signal.symbol} (설정: ${this.userSymbol})\n` +
+          `시간: ${new Date().toLocaleTimeString()}`
+        );
+      } else {
+        // 심볼 불일치로 인한 무시는 로그만 출력 (알림 X)
+        if (message.text.match(/^[A-Z]{2,10}(\s+(LONG|SHORT|BUY|SELL))?/i)) {
+          console.log('심볼 불일치로 신호 무시:', message.text);
+        } else {
+          console.log('유효하지 않은 신호:', message.text);
+        }
       }
     } catch (error) {
-      console.error('신호 체크 실패:', error);
+      console.error('메시지 처리 오류:', error);
+      
+      // 오류 알림
+      await this.telegramBot.sendMessage(
+        `❌ 신호 처리 중 오류 발생: ${error.message}`
+      );
     }
   }
   
+  // 신호 실행
   async executeSignal(signal) {
     try {
-      const macroType = signal.type === 'BUY' ? 'long' : 'short';
-      
-      // 매크로 실행 (기존 MacroExecutor 활용)
-      if (window.macroExecutor) {
-        await window.macroExecutor.executeMacro(macroType);
-        
-        // 실행 결과 저장
-        await chrome.storage.local.set({
-          lastTrade: {
-            signal: signal,
-            executedAt: Date.now(),
-            success: true
-          }
-        });
-        
-        console.log(`${signal.type} 신호 실행 완료`);
+      // 현재 탭이 거래소인지 확인
+      const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+      if (!this.isExchangePage(tab.url)) {
+        throw new Error('거래소 페이지가 아닙니다');
       }
+      
+      // 매크로 실행
+      const macroType = signal.action; // 'long' or 'short'
+      
+      await chrome.scripting.executeScript({
+        target: {tabId: tab.id},
+        function: (type) => {
+          if (window.macroExecutor) {
+            return window.macroExecutor.executeMacro(type);
+          } else {
+            throw new Error('매크로 실행기가 로드되지 않았습니다');
+          }
+        },
+        args: [macroType]
+      });
+      
+      // 실행 기록 저장
+      await chrome.storage.local.set({
+        lastTelegramTrade: {
+          signal: signal,
+          executedAt: Date.now(),
+          success: true
+        }
+      });
+      
+      console.log(`${signal.action} 매크로 실행 완료`);
+      
     } catch (error) {
       console.error('신호 실행 실패:', error);
       
-      // 실패 기록
+      // 실패 기록 저장
       await chrome.storage.local.set({
-        lastTrade: {
+        lastTelegramTrade: {
           signal: signal,
           executedAt: Date.now(),
           success: false,
           error: error.message
         }
       });
+      
+      throw error;
     }
+  }
+  
+  // 거래소 페이지 확인
+  isExchangePage(url) {
+    const exchangePatterns = [
+      'gate.io',
+      'binance.com',
+      'upbit.com',
+      'coinbase.com'
+    ];
+    
+    return exchangePatterns.some(pattern => url.includes(pattern));
   }
 }
 ```
 
-#### 8-4. UI 연동 및 표시 (30분)
+#### 8-4. 심볼 설정 UI 및 연동 (30분)
 ```javascript
-// popup.js에 지표 표시 추가
-function updateIndicatorDisplay() {
-  chrome.storage.local.get(['currentPrice'], (result) => {
-    if (result.currentPrice && window.indicators) {
-      window.indicators.addPrice(result.currentPrice);
+// popup.js에 텔레그램 설정 추가
+class TelegramUI {
+  constructor() {
+    this.autoTrader = new TelegramAutoTrader();
+    this.initializeUI();
+  }
+  
+  initializeUI() {
+    // 텔레그램 설정 섹션
+    const telegramSection = document.getElementById('telegramSection');
+    
+    // 연결 테스트 버튼
+    document.getElementById('testTelegramConnection').addEventListener('click', async () => {
+      await this.testConnection();
+    });
+    
+    // 자동매매 시작/중단 버튼
+    document.getElementById('startTelegramTrading').addEventListener('click', async () => {
+      await this.startTrading();
+    });
+    
+    document.getElementById('stopTelegramTrading').addEventListener('click', () => {
+      this.stopTrading();
+    });
+    
+    // 심볼 변경 이벤트
+    document.getElementById('userSymbol').addEventListener('change', () => {
+      this.updateSymbol();
+    });
+    
+    // 설정 로드
+    this.loadSettings();
+  }
+  
+  async testConnection() {
+    try {
+      const botToken = document.getElementById('botToken').value;
+      const chatId = document.getElementById('chatId').value;
+      const userSymbol = document.getElementById('userSymbol').value;
       
-      const bb = window.indicators.calculateBollingerBands();
-      if (bb) {
-        document.getElementById('bbUpper').textContent = bb.upper.toFixed(2);
-        document.getElementById('bbMiddle').textContent = bb.middle.toFixed(2);
-        document.getElementById('bbLower').textContent = bb.lower.toFixed(2);
-        
-        // 신호 표시
-        const signal = window.tradingSignals.generateBollingerSignal();
-        if (signal) {
-          document.getElementById('currentSignal').textContent = 
-            `${signal.type} (${signal.confidence.toFixed(1)}%)`;
-        }
+      if (!botToken || !chatId) {
+        this.showStatus('봇 토큰과 채팅 ID를 입력하세요', 'error');
+        return;
       }
+      
+      this.showStatus('연결 테스트 중...', 'info');
+      
+      const result = await this.autoTrader.initialize(botToken, chatId, userSymbol);
+      
+      if (result.success) {
+        const symbolInfo = userSymbol ? ` (${userSymbol} 전용)` : '';
+        this.showStatus(`연결 성공: @${result.botInfo.username}${symbolInfo}`, 'success');
+        
+        // 설정 저장
+        await chrome.storage.local.set({
+          telegramSettings: { botToken, chatId, userSymbol }
+        });
+      }
+    } catch (error) {
+      this.showStatus(`연결 실패: ${error.message}`, 'error');
     }
-  });
+  }
+  
+  // 심볼 업데이트
+  updateSymbol() {
+    const userSymbol = document.getElementById('userSymbol').value;
+    if (this.autoTrader.telegramBot) {
+      this.autoTrader.setUserSymbol(userSymbol);
+      this.showStatus(`심볼 업데이트: ${userSymbol || '전체'}`, 'info');
+      
+      // 설정 저장
+      chrome.storage.local.get(['telegramSettings'], (result) => {
+        const settings = result.telegramSettings || {};
+        settings.userSymbol = userSymbol;
+        chrome.storage.local.set({ telegramSettings: settings });
+      });
+    }
+  }
+  
+  async startTrading() {
+    try {
+      if (!this.autoTrader.telegramBot) {
+        await this.testConnection();
+      }
+      
+      this.autoTrader.start();
+      this.showStatus('텔레그램 자동매매 시작됨', 'success');
+      
+      // UI 상태 업데이트
+      document.getElementById('telegramStatus').textContent = '실행 중';
+      document.getElementById('startTelegramTrading').disabled = true;
+      document.getElementById('stopTelegramTrading').disabled = false;
+      
+    } catch (error) {
+      this.showStatus(`시작 실패: ${error.message}`, 'error');
+    }
+  }
+  
+  stopTrading() {
+    this.autoTrader.stop();
+    this.showStatus('텔레그램 자동매매 중단됨', 'info');
+    
+    // UI 상태 업데이트
+    document.getElementById('telegramStatus').textContent = '중단됨';
+    document.getElementById('startTelegramTrading').disabled = false;
+    document.getElementById('stopTelegramTrading').disabled = true;
+  }
+  
+  showStatus(message, type) {
+    const statusElement = document.getElementById('telegramStatusMessage');
+    statusElement.textContent = message;
+    statusElement.className = `status-message ${type}`;
+  }
+  
+  async loadSettings() {
+    const result = await chrome.storage.local.get(['telegramSettings']);
+    if (result.telegramSettings) {
+      document.getElementById('botToken').value = result.telegramSettings.botToken || '';
+      document.getElementById('chatId').value = result.telegramSettings.chatId || '';
+      document.getElementById('userSymbol').value = result.telegramSettings.userSymbol || '';
+    }
+  }
 }
 
-// 자동매매 시작/중단 버튼
-document.getElementById('startAutoTrading').addEventListener('click', () => {
-  if (window.autoTradingEngine) {
-    window.autoTradingEngine.start();
-    document.getElementById('autoTradingStatus').textContent = '실행 중';
-  }
+// 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  window.telegramUI = new TelegramUI();
 });
+```
 
-document.getElementById('stopAutoTrading').addEventListener('click', () => {
-  if (window.autoTradingEngine) {
-    window.autoTradingEngine.stop();
-    document.getElementById('autoTradingStatus').textContent = '중단됨';
-  }
-});
+**popup.html에 추가할 UI 요소:**
+```html
+<!-- 텔레그램 설정 섹션 -->
+<section id="telegramSection" class="telegram-section">
+  <h3>📱 텔레그램 자동매매</h3>
+  
+  <div class="input-group">
+    <label for="botToken">봇 토큰:</label>
+    <input type="password" id="botToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+  </div>
+  
+  <div class="input-group">
+    <label for="chatId">채팅 ID:</label>
+    <input type="text" id="chatId" placeholder="987654321">
+  </div>
+  
+  <div class="input-group">
+    <label for="userSymbol">거래 심볼:</label>
+    <input type="text" id="userSymbol" placeholder="BTC" maxlength="10">
+    <small>예: BTC, ETH, SOL (이 심볼 신호만 처리)</small>
+  </div>
+  
+  <div class="button-group">
+    <button id="testTelegramConnection" class="btn-secondary">연결 테스트</button>
+    <button id="startTelegramTrading" class="btn-primary">자동매매 시작</button>
+    <button id="stopTelegramTrading" class="btn-danger" disabled>자동매매 중단</button>
+  </div>
+  
+  <div id="telegramStatusMessage" class="status-message"></div>
+  <div class="status-info">
+    <span>상태: </span>
+    <span id="telegramStatus">대기 중</span>
+  </div>
+</section>
 ```
 
 ### ✅ 완료 조건
-- [ ] 볼린저 밴드 계산이 정확함
-- [ ] 매수/매도 신호가 올바르게 생성됨
-- [ ] 실시간 모니터링이 정상 작동함
-- [ ] UI에 지표 정보가 표시됨
+- [ ] 텔레그램 봇 연결이 정상 작동함
+- [ ] 메시지 폴링이 3초 간격으로 실행됨
+- [ ] **사용자 설정 심볼과 매칭되는 신호만 파싱됨**
+- [ ] **다양한 신호 형식 지원** ("BTC Long", "Long BTC", "BUY BTCUSDT")
+- [ ] **심볼 매칭 시에만 매크로 자동 실행됨**
+- [ ] **다른 심볼 신호는 무시됨**
+- [ ] UI에서 심볼 설정 및 연결 상태 관리 가능
 
 ### 🚨 문제 해결
-**문제**: 가격 데이터 부족으로 지표 계산 불가
-**해결**: 최소 데이터 요구사항 체크, 초기 데이터 수집 기간 설정
+**문제**: 텔레그램 API 연결 실패
+**해결**: 봇 토큰 재확인, 네트워크 상태 점검
 
-**문제**: 신호 생성 과다
-**해결**: 쿨다운 시스템, 신뢰도 필터링 적용
+**문제**: 심볼 매칭 실패
+**해결**: 사용자 심볼 설정 확인, 대소문자 구분 없음, 부분 매칭 지원
+
+**문제**: 신호 파싱 실패
+**해결**: 다양한 메시지 형식 지원, 패턴 매칭 로그 확인
+
+**문제**: 매크로 실행 실패
+**해결**: 거래소 페이지 확인, 매크로 재녹화
 
 ---
 
-## 🎯 Phase 9: 자동매매 로직 (4시간)
+## 🎯 Phase 9: 리스크 관리 및 거래 내역 시스템 (3시간)
 
 ### 📋 목표
-신호에 따라 완전 자동으로 매매 실행
+안전한 자동매매를 위한 리스크 관리 및 거래 기록 시스템
 
 ### 🛠️ 구현 단계
 
-#### 9-1. 포지션 관리 시스템 (1.5시간)
+#### 9-1. 거래 제한 및 안전장치 (1시간)
 ```javascript
-class PositionManager {
-  constructor() {
-    this.currentPosition = null; // null, 'long', 'short'
-    this.positionSize = 0;
-    this.entryPrice = 0;
-    this.entryTime = null;
-  }
-  
-  async openPosition(type, price, size) {
-    if (this.currentPosition) {
-      console.warn('이미 포지션이 열려있습니다:', this.currentPosition);
-      return false;
-    }
-    
-    this.currentPosition = type;
-    this.positionSize = size;
-    this.entryPrice = price;
-    this.entryTime = Date.now();
-    
-    await this.savePosition();
-    console.log(`${type} 포지션 오픈:`, { price, size });
-    return true;
-  }
-  
-  async closePosition(price) {
-    if (!this.currentPosition) {
-      console.warn('닫을 포지션이 없습니다');
-      return false;
-    }
-    
-    const pnl = this.calculatePnL(price);
-    const holdingTime = Date.now() - this.entryTime;
-    
-    // 거래 내역 저장
-    await this.saveTrade({
-      type: this.currentPosition,
-      entryPrice: this.entryPrice,
-      exitPrice: price,
-      size: this.positionSize,
-      pnl: pnl,
-      holdingTime: holdingTime,
-      timestamp: Date.now()
-    });
-    
-    console.log(`${this.currentPosition} 포지션 클로즈:`, { 
-      entryPrice: this.entryPrice, 
-      exitPrice: price, 
-      pnl: pnl 
-    });
-    
-    // 포지션 초기화
-    this.currentPosition = null;
-    this.positionSize = 0;
-    this.entryPrice = 0;
-    this.entryTime = null;
-    
-    await this.savePosition();
-    return true;
-  }
-  
-  calculatePnL(currentPrice) {
-    if (!this.currentPosition) return 0;
-    
-    const priceDiff = this.currentPosition === 'long' 
-      ? currentPrice - this.entryPrice 
-      : this.entryPrice - currentPrice;
-      
-    return (priceDiff / this.entryPrice) * 100; // 수익률 %
-  }
-  
-  async savePosition() {
-    await chrome.storage.local.set({
-      currentPosition: {
-        type: this.currentPosition,
-        size: this.positionSize,
-        entryPrice: this.entryPrice,
-        entryTime: this.entryTime
-      }
-    });
-  }
-  
-  async saveTrade(trade) {
-    const result = await chrome.storage.local.get(['tradeHistory']);
-    const history = result.tradeHistory || [];
-    
-    history.push(trade);
-    
-    // 최대 100개 거래 내역 보관
-    if (history.length > 100) {
-      history.shift();
-    }
-    
-    await chrome.storage.local.set({ tradeHistory: history });
-  }
-}
-```
-
-#### 9-2. 리스크 관리 시스템 (1.5시간)
-```javascript
+// utils/riskManager.js
 class RiskManager {
   constructor() {
-    this.maxLossPercent = 5; // 최대 5% 손실
-    this.maxTradesPerHour = 10; // 시간당 최대 10회 거래
-    this.minTradingInterval = 30000; // 최소 30초 간격
-    this.lastTradeTime = 0;
-    this.hourlyTradeCount = 0;
-    this.hourlyTradeReset = Date.now();
+    this.settings = {
+      maxTradesPerHour: 10,        // 시간당 최대 거래 횟수
+      minTradingInterval: 30000,   // 최소 거래 간격 (30초)
+      cooldownAfterLoss: 300000,   // 손실 후 쿨다운 (5분)
+      maxConsecutiveLosses: 3,     // 최대 연속 손실 횟수
+      tradingHours: {              // 거래 허용 시간
+        start: 9,   // 오전 9시
+        end: 23     // 오후 11시
+      }
+    };
+    
+    this.state = {
+      lastTradeTime: 0,
+      hourlyTradeCount: 0,
+      hourlyTradeReset: Date.now(),
+      consecutiveLosses: 0,
+      lastLossTime: 0,
+      totalTrades: 0,
+      successfulTrades: 0
+    };
   }
   
-  canTrade() {
+  // 거래 가능 여부 종합 판단
+  canTrade(signal = null) {
+    const checks = [
+      this.checkTradingHours(),
+      this.checkTradingInterval(),
+      this.checkHourlyLimit(),
+      this.checkCooldown(),
+      this.checkConsecutiveLosses()
+    ];
+    
+    const results = checks.map(check => check());
+    const failedChecks = results.filter(result => !result.allowed);
+    
+    if (failedChecks.length > 0) {
+      console.log('거래 제한:', failedChecks.map(f => f.reason).join(', '));
+      return { allowed: false, reasons: failedChecks.map(f => f.reason) };
+    }
+    
+    return { allowed: true, reasons: [] };
+  }
+  
+  // 거래 시간 체크
+  checkTradingHours() {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour < this.settings.tradingHours.start || hour >= this.settings.tradingHours.end) {
+      return { allowed: false, reason: '거래 시간 외' };
+    }
+    
+    return { allowed: true };
+  }
+  
+  // 거래 간격 체크
+  checkTradingInterval() {
+    const now = Date.now();
+    const timeSinceLastTrade = now - this.state.lastTradeTime;
+    
+    if (timeSinceLastTrade < this.settings.minTradingInterval) {
+      const remainingTime = Math.ceil((this.settings.minTradingInterval - timeSinceLastTrade) / 1000);
+      return { allowed: false, reason: `거래 간격 부족 (${remainingTime}초 대기)` };
+    }
+    
+    return { allowed: true };
+  }
+  
+  // 시간당 거래 횟수 체크
+  checkHourlyLimit() {
     const now = Date.now();
     
     // 시간당 거래 횟수 리셋
-    if (now - this.hourlyTradeReset > 3600000) { // 1시간
-      this.hourlyTradeCount = 0;
-      this.hourlyTradeReset = now;
+    if (now - this.state.hourlyTradeReset > 3600000) { // 1시간
+      this.state.hourlyTradeCount = 0;
+      this.state.hourlyTradeReset = now;
     }
     
-    // 거래 간격 체크
-    if (now - this.lastTradeTime < this.minTradingInterval) {
-      console.log('거래 간격 부족');
-      return false;
+    if (this.state.hourlyTradeCount >= this.settings.maxTradesPerHour) {
+      return { allowed: false, reason: '시간당 최대 거래 횟수 초과' };
     }
     
-    // 시간당 거래 횟수 체크
-    if (this.hourlyTradeCount >= this.maxTradesPerHour) {
-      console.log('시간당 최대 거래 횟수 초과');
-      return false;
+    return { allowed: true };
+  }
+  
+  // 손실 후 쿨다운 체크
+  checkCooldown() {
+    const now = Date.now();
+    const timeSinceLoss = now - this.state.lastLossTime;
+    
+    if (this.state.lastLossTime > 0 && timeSinceLoss < this.settings.cooldownAfterLoss) {
+      const remainingTime = Math.ceil((this.settings.cooldownAfterLoss - timeSinceLoss) / 60000);
+      return { allowed: false, reason: `손실 후 쿨다운 (${remainingTime}분 대기)` };
     }
     
-    return true;
+    return { allowed: true };
   }
   
-  shouldStopLoss(currentPnL) {
-    return currentPnL <= -this.maxLossPercent;
-  }
-  
-  recordTrade() {
-    this.lastTradeTime = Date.now();
-    this.hourlyTradeCount++;
-  }
-  
-  async checkStopLoss(positionManager, currentPrice) {
-    if (!positionManager.currentPosition) return false;
+  // 연속 손실 체크
+  checkConsecutiveLosses() {
+    if (this.state.consecutiveLosses >= this.settings.maxConsecutiveLosses) {
+      return { allowed: false, reason: '연속 손실 한도 초과' };
+    }
     
-    const pnl = positionManager.calculatePnL(currentPrice);
+    return { allowed: true };
+  }
+  
+  // 거래 기록 (성공)
+  recordSuccessfulTrade() {
+    this.state.lastTradeTime = Date.now();
+    this.state.hourlyTradeCount++;
+    this.state.totalTrades++;
+    this.state.successfulTrades++;
+    this.state.consecutiveLosses = 0; // 연속 손실 리셋
     
-    if (this.shouldStopLoss(pnl)) {
-      console.log(`손절 실행: ${pnl.toFixed(2)}%`);
+    this.saveState();
+  }
+  
+  // 거래 기록 (실패/손실)
+  recordFailedTrade() {
+    this.state.lastTradeTime = Date.now();
+    this.state.hourlyTradeCount++;
+    this.state.totalTrades++;
+    this.state.consecutiveLosses++;
+    this.state.lastLossTime = Date.now();
+    
+    this.saveState();
+  }
+  
+  // 상태 저장
+  async saveState() {
+    await chrome.storage.local.set({
+      riskManagerState: this.state
+    });
+  }
+  
+  // 상태 로드
+  async loadState() {
+    const result = await chrome.storage.local.get(['riskManagerState']);
+    if (result.riskManagerState) {
+      this.state = { ...this.state, ...result.riskManagerState };
+    }
+  }
+  
+  // 통계 정보
+  getStats() {
+    const successRate = this.state.totalTrades > 0 
+      ? (this.state.successfulTrades / this.state.totalTrades * 100).toFixed(1)
+      : 0;
       
-      // 반대 매크로 실행 (포지션 청산)
-      const closeMacroType = positionManager.currentPosition === 'long' ? 'short' : 'long';
-      
-      if (window.macroExecutor) {
-        await window.macroExecutor.executeMacro(closeMacroType);
-        await positionManager.closePosition(currentPrice);
-        this.recordTrade();
-        return true;
-      }
-    }
-    
-    return false;
+    return {
+      totalTrades: this.state.totalTrades,
+      successfulTrades: this.state.successfulTrades,
+      successRate: `${successRate}%`,
+      consecutiveLosses: this.state.consecutiveLosses,
+      hourlyTradeCount: this.state.hourlyTradeCount
+    };
   }
 }
 ```
 
-#### 9-3. 완전 자동매매 엔진 (1시간)
+#### 9-2. 거래 내역 관리 시스템 (1시간)
 ```javascript
-class FullAutoTradingEngine extends AutoTradingEngine {
+// utils/tradeHistory.js
+class TradeHistoryManager {
+  constructor() {
+    this.maxHistorySize = 500; // 최대 500개 거래 기록
+  }
+  
+  // 거래 기록 추가
+  async addTrade(tradeData) {
+    const trade = {
+      id: this.generateTradeId(),
+      timestamp: Date.now(),
+      date: new Date().toISOString(),
+      source: tradeData.source || 'telegram', // 'telegram', 'manual', 'indicator'
+      signal: tradeData.signal,
+      action: tradeData.action, // 'long', 'short'
+      symbol: tradeData.symbol || 'BTCUSDT',
+      price: tradeData.price,
+      amount: tradeData.amount,
+      success: tradeData.success,
+      error: tradeData.error || null,
+      executionTime: tradeData.executionTime || null,
+      confidence: tradeData.confidence || null
+    };
+    
+    // 기존 거래 내역 가져오기
+    const result = await chrome.storage.local.get(['tradeHistory']);
+    const history = result.tradeHistory || [];
+    
+    // 새 거래 추가
+    history.push(trade);
+    
+    // 최대 크기 초과 시 오래된 거래 제거
+    if (history.length > this.maxHistorySize) {
+      history.splice(0, history.length - this.maxHistorySize);
+    }
+    
+    // 저장
+    await chrome.storage.local.set({ tradeHistory: history });
+    
+    console.log('거래 기록 추가:', trade);
+    return trade;
+  }
+  
+  // 거래 내역 조회
+  async getTradeHistory(filters = {}) {
+    const result = await chrome.storage.local.get(['tradeHistory']);
+    let history = result.tradeHistory || [];
+    
+    // 필터 적용
+    if (filters.source) {
+      history = history.filter(trade => trade.source === filters.source);
+    }
+    
+    if (filters.action) {
+      history = history.filter(trade => trade.action === filters.action);
+    }
+    
+    if (filters.success !== undefined) {
+      history = history.filter(trade => trade.success === filters.success);
+    }
+    
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom).getTime();
+      history = history.filter(trade => trade.timestamp >= fromDate);
+    }
+    
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo).getTime();
+      history = history.filter(trade => trade.timestamp <= toDate);
+    }
+    
+    // 최신순 정렬
+    return history.sort((a, b) => b.timestamp - a.timestamp);
+  }
+  
+  // 거래 통계 계산
+  async getTradeStats(period = 'all') {
+    const history = await this.getTradeHistory();
+    
+    // 기간 필터링
+    let filteredHistory = history;
+    if (period !== 'all') {
+      const now = Date.now();
+      let periodMs = 0;
+      
+      switch (period) {
+        case 'today':
+          periodMs = 24 * 60 * 60 * 1000;
+          break;
+        case 'week':
+          periodMs = 7 * 24 * 60 * 60 * 1000;
+          break;
+        case 'month':
+          periodMs = 30 * 24 * 60 * 60 * 1000;
+          break;
+      }
+      
+      filteredHistory = history.filter(trade => 
+        trade.timestamp >= (now - periodMs)
+      );
+    }
+    
+    const totalTrades = filteredHistory.length;
+    const successfulTrades = filteredHistory.filter(t => t.success).length;
+    const failedTrades = totalTrades - successfulTrades;
+    const successRate = totalTrades > 0 ? (successfulTrades / totalTrades * 100) : 0;
+    
+    // 소스별 통계
+    const sourceStats = {};
+    filteredHistory.forEach(trade => {
+      if (!sourceStats[trade.source]) {
+        sourceStats[trade.source] = { total: 0, successful: 0 };
+      }
+      sourceStats[trade.source].total++;
+      if (trade.success) {
+        sourceStats[trade.source].successful++;
+      }
+    });
+    
+    // 액션별 통계
+    const actionStats = {
+      long: filteredHistory.filter(t => t.action === 'long').length,
+      short: filteredHistory.filter(t => t.action === 'short').length
+    };
+    
+    return {
+      period,
+      totalTrades,
+      successfulTrades,
+      failedTrades,
+      successRate: successRate.toFixed(1),
+      sourceStats,
+      actionStats,
+      recentTrades: filteredHistory.slice(0, 10) // 최근 10개
+    };
+  }
+  
+  // 거래 ID 생성
+  generateTradeId() {
+    return `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  // 데이터 내보내기 (CSV)
+  async exportToCSV(filters = {}) {
+    const history = await this.getTradeHistory(filters);
+    
+    const headers = [
+      'ID', 'Date', 'Source', 'Action', 'Symbol', 'Price', 
+      'Amount', 'Success', 'Error', 'Confidence'
+    ];
+    
+    const rows = history.map(trade => [
+      trade.id,
+      new Date(trade.timestamp).toLocaleString(),
+      trade.source,
+      trade.action,
+      trade.symbol,
+      trade.price || '',
+      trade.amount || '',
+      trade.success ? 'Success' : 'Failed',
+      trade.error || '',
+      trade.confidence || ''
+    ]);
+    
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+    
+    return csvContent;
+  }
+}
+```
+
+#### 9-3. 통합 자동매매 시스템 (1시간)
+```javascript
+// utils/enhancedAutoTrader.js
+class EnhancedTelegramAutoTrader extends TelegramAutoTrader {
   constructor() {
     super();
-    this.positionManager = new PositionManager();
     this.riskManager = new RiskManager();
+    this.tradeHistory = new TradeHistoryManager();
   }
   
-  async checkSignals() {
+  // 초기화 시 리스크 매니저 상태 로드
+  async initialize(botToken, chatId) {
+    await this.riskManager.loadState();
+    return await super.initialize(botToken, chatId);
+  }
+  
+  // 신호 실행 전 리스크 체크 추가
+  async executeSignal(signal) {
+    const startTime = Date.now();
+    
     try {
-      // 현재 가격 가져오기
-      const result = await chrome.storage.local.get(['currentPrice']);
-      const currentPrice = result.currentPrice;
+      // 리스크 체크
+      const riskCheck = this.riskManager.canTrade(signal);
+      if (!riskCheck.allowed) {
+        console.log('리스크 체크 실패:', riskCheck.reasons);
+        
+        // 실패 기록
+        await this.tradeHistory.addTrade({
+          source: 'telegram',
+          signal: signal,
+          action: signal.action,
+          symbol: signal.symbol,
+          price: signal.price,
+          success: false,
+          error: `리스크 체크 실패: ${riskCheck.reasons.join(', ')}`,
+          confidence: signal.confidence
+        });
+        
+        // 텔레그램 알림
+        await this.telegramBot.sendMessage(
+          `⚠️ 거래 제한\n${riskCheck.reasons.join('\n')}`
+        );
+        
+        return;
+      }
       
-      if (!currentPrice) return;
+      // 기존 매크로 실행 로직
+      await super.executeSignal(signal);
       
-      // 손절 체크 (최우선)
-      const stopLossExecuted = await this.riskManager.checkStopLoss(
-        this.positionManager, 
-        currentPrice
+      // 성공 기록
+      const executionTime = Date.now() - startTime;
+      this.riskManager.recordSuccessfulTrade();
+      
+      await this.tradeHistory.addTrade({
+        source: 'telegram',
+        signal: signal,
+        action: signal.action,
+        symbol: signal.symbol,
+        price: signal.price,
+        success: true,
+        executionTime: executionTime,
+        confidence: signal.confidence
+      });
+      
+      // 성공 알림 (통계 포함)
+      const stats = this.riskManager.getStats();
+      await this.telegramBot.sendMessage(
+        `✅ <b>${signal.action.toUpperCase()}</b> 실행 완료\n` +
+        `심볼: ${signal.symbol}\n` +
+        `실행시간: ${executionTime}ms\n` +
+        `성공률: ${stats.successRate} (${stats.successfulTrades}/${stats.totalTrades})`
       );
       
-      if (stopLossExecuted) return;
-      
-      // 거래 가능 여부 체크
-      if (!this.riskManager.canTrade()) return;
-      
-      // 신호 생성
-      const signal = this.signals.generateBollingerSignal();
-      if (!signal) return;
-      
-      console.log('거래 신호 감지:', signal);
-      
-      // 포지션 상태에 따른 처리
-      if (this.positionManager.currentPosition) {
-        await this.handlePositionClose(signal, currentPrice);
-      } else {
-        await this.handlePositionOpen(signal, currentPrice);
-      }
-      
     } catch (error) {
-      console.error('자동매매 체크 실패:', error);
+      // 실패 기록
+      const executionTime = Date.now() - startTime;
+      this.riskManager.recordFailedTrade();
+      
+      await this.tradeHistory.addTrade({
+        source: 'telegram',
+        signal: signal,
+        action: signal.action,
+        symbol: signal.symbol,
+        price: signal.price,
+        success: false,
+        error: error.message,
+        executionTime: executionTime,
+        confidence: signal.confidence
+      });
+      
+      // 실패 알림
+      await this.telegramBot.sendMessage(
+        `❌ <b>${signal.action.toUpperCase()}</b> 실행 실패\n` +
+        `오류: ${error.message}\n` +
+        `연속 실패: ${this.riskManager.state.consecutiveLosses}회`
+      );
+      
+      throw error;
     }
   }
   
-  async handlePositionOpen(signal, currentPrice) {
-    const positionType = signal.type === 'BUY' ? 'long' : 'short';
-    
-    // 신뢰도 체크
-    if (signal.confidence < 70) {
-      console.log('신뢰도 부족으로 거래 스킵:', signal.confidence);
-      return;
-    }
-    
+  // 일일 통계 리포트
+  async sendDailyReport() {
     try {
-      // 매크로 실행
-      const macroType = signal.type === 'BUY' ? 'long' : 'short';
+      const stats = await this.tradeHistory.getTradeStats('today');
+      const riskStats = this.riskManager.getStats();
       
-      if (window.macroExecutor) {
-        await window.macroExecutor.executeMacro(macroType);
-        
-        // 포지션 기록
-        const result = await chrome.storage.local.get(['currentAmount']);
-        const positionSize = result.currentAmount || 0;
-        
-        await this.positionManager.openPosition(positionType, currentPrice, positionSize);
-        this.riskManager.recordTrade();
-        
-        console.log(`${positionType} 포지션 오픈 완료`);
-      }
+      const report = 
+        `📊 <b>일일 거래 리포트</b>\n\n` +
+        `총 거래: ${stats.totalTrades}회\n` +
+        `성공: ${stats.successfulTrades}회\n` +
+        `실패: ${stats.failedTrades}회\n` +
+        `성공률: ${stats.successRate}%\n\n` +
+        `Long: ${stats.actionStats.long}회\n` +
+        `Short: ${stats.actionStats.short}회\n\n` +
+        `연속 손실: ${riskStats.consecutiveLosses}회\n` +
+        `시간당 거래: ${riskStats.hourlyTradeCount}회`;
+      
+      await this.telegramBot.sendMessage(report);
     } catch (error) {
-      console.error('포지션 오픈 실패:', error);
+      console.error('일일 리포트 전송 실패:', error);
     }
   }
   
-  async handlePositionClose(signal, currentPrice) {
-    const currentPos = this.positionManager.currentPosition;
+  // 자동매매 시작 시 일일 리포트 스케줄링
+  start() {
+    super.start();
     
-    // 반대 신호인 경우에만 포지션 청산
-    const shouldClose = (currentPos === 'long' && signal.type === 'SELL') ||
-                       (currentPos === 'short' && signal.type === 'BUY');
+    // 매일 자정에 리포트 전송
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
     
-    if (!shouldClose) return;
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
     
-    try {
-      // 청산 매크로 실행
-      const closeMacroType = currentPos === 'long' ? 'short' : 'long';
+    setTimeout(() => {
+      this.sendDailyReport();
       
-      if (window.macroExecutor) {
-        await window.macroExecutor.executeMacro(closeMacroType);
-        await this.positionManager.closePosition(currentPrice);
-        this.riskManager.recordTrade();
-        
-        console.log(`${currentPos} 포지션 청산 완료`);
-      }
-    } catch (error) {
-      console.error('포지션 청산 실패:', error);
-    }
+      // 이후 24시간마다 반복
+      setInterval(() => {
+        this.sendDailyReport();
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
   }
 }
 ```
 
 ### ✅ 완료 조건
-- [ ] 신호에 따라 자동으로 포지션 오픈/클로즈
-- [ ] 손절 시스템이 정상 작동
-- [ ] 거래 내역이 정확히 기록됨
-- [ ] 리스크 관리 규칙이 적용됨
+- [ ] 거래 시간, 횟수, 간격 제한이 정상 작동함
+- [ ] 연속 손실 시 자동 중단됨
+- [ ] 모든 거래가 정확히 기록됨
+- [ ] 통계 정보가 실시간으로 업데이트됨
+- [ ] 일일 리포트가 자동 전송됨
 
 ### 🚨 문제 해결
-**문제**: 과도한 거래 발생
-**해결**: 거래 간격 제한, 시간당 거래 횟수 제한
+**문제**: 과도한 거래로 인한 손실
+**해결**: 시간당 거래 횟수 제한, 최소 거래 간격 설정
 
-**문제**: 손절이 작동하지 않음
-**해결**: 실시간 PnL 계산, 우선순위 체크 로직
+**문제**: 연속 손실 발생
+**해결**: 연속 손실 한도 설정, 쿨다운 시간 적용
+
+**문제**: 거래 기록 누락
+**해결**: 성공/실패 모든 경우에 대한 기록 시스템
 
 ---
 
