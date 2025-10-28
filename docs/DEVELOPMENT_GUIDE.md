@@ -193,6 +193,16 @@ git config --global core.autocrlf true
 
 ---
 
+## 🔗 관련 문서
+
+- **[텔레그램 연동 가이드](TELEGRAM_INTEGRATION_GUIDE.md)**: 트레이딩뷰-텔레그램-익스텐션 연동 방법
+- **[PC 전원 관리 가이드](PC_POWER_MANAGEMENT_GUIDE.md)**: 24시간 자동매매를 위한 PC 설정 방법
+- **[구현 단계](IMPLEMENTATION_STEPS.md)**: 프로젝트 개발 로드맵
+- **[사용자 가이드](USER_GUIDE.md)**: 익스텐션 사용 방법
+- **[설치 가이드](SETUP_GUIDE.md)**: 개발 환경 설정 방법
+
+---
+
 ## 📋 현재 프로젝트 상태
 
 - **현재 Phase**: Phase 7 완료
