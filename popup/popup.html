@@ -8,6 +8,12 @@
 </head>
 <body>
   <div class="container">
+    <!-- Main Control Buttons -->
+    <div class="button-section">
+      <button id="startBtn" class="btn btn-start">Start Trading</button>
+      <button id="stopBtn" class="btn btn-stop" disabled>Stop Trading</button>
+    </div>
+
     <!-- Status Display Area -->
     <div class="status-section">
       <div class="status-header">
@@ -31,31 +37,15 @@
       </div>
     </div>
 
-    <!-- Button Area -->
-    <div class="button-section">
-      <button id="startBtn" class="btn btn-start">Start Trading</button>
-      <button id="stopBtn" class="btn btn-stop" disabled>Stop Trading</button>
-    </div>
-
     <!-- Manual Trading Controls -->
     <div class="manual-controls">
-      <button id="manualLongBtn" class="btn btn-manual btn-long">Manual Long</button>
-      <button id="manualShortBtn" class="btn btn-manual btn-short">Manual Short</button>
+      <button id="manualLongBtn" class="btn btn-manual btn-long">Quick Long</button>
+      <button id="manualShortBtn" class="btn btn-manual btn-short">Quick Short</button>
     </div>
 
     <!-- Settings Area -->
     <div class="exchange-section">
       <h3>Settings</h3>
-      
-      <!-- Macro Recording -->
-      <div class="macro-recording">
-        <h4>Macro Recording</h4>
-        <div class="macro-controls">
-          <button id="longRecordBtn" class="btn btn-macro btn-long">Long Record</button>
-          <button id="shortRecordBtn" class="btn btn-macro btn-short">Short Record</button>
-        </div>
-      </div>
-      
       <div class="exchange-selector">
         <select id="exchangeSelect" class="exchange-dropdown">
           <option value="">Select Exchange</option>
@@ -90,6 +80,18 @@
         <input type="number" id="stoplossValue" min="0" max="100" value="2" step="0.1" class="setting-input" />
       </div>
       
+      <!-- Data Extraction Buttons -->
+      <div class="extraction-controls">
+        <button id="extractAssetsBtn" class="btn btn-selector">Assets Extraction</button>
+        <button id="extractPriceBtn" class="btn btn-selector btn-price">Price Extraction</button>
+      </div>
+      
+      <!-- Macro Recording Controls -->
+      <div class="macro-controls">
+        <button id="longRecordBtn" class="btn btn-macro btn-long">Long Record</button>
+        <button id="shortRecordBtn" class="btn btn-macro btn-short">Short Record</button>
+      </div>
+      
       <!-- Telegram Integration -->
       <div class="telegram-integration">
         <h4>Telegram Integration</h4>
@@ -115,14 +117,7 @@
         
         <div id="telegramStatusMessage" class="status-message"></div>
       </div>
-      
-      <!-- Data Extraction Buttons -->
-      <div class="extraction-controls">
-        <button id="extractAssetsBtn" class="btn btn-selector">Assets Extraction</button>
-        <button id="extractPriceBtn" class="btn btn-selector btn-price">Price Extraction</button>
-      </div>
     </div>
-
 
 
     <!-- Data Management Area -->
