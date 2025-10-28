@@ -1,408 +1,1970 @@
-# 크롬 익스텐션 기반 암호화폐 자동매매 봇 - 단계별 구현 계획
+# 🚀 크롬 익스텐션 기반 암호화폐 자동매매 봇 - 구현 가이드
 
 ## 📋 개요
-이 문서는 크롬 익스텐션 기반 암호화폐 자동매매 봇을 단계적으로 구현하기 위한 상세 계획입니다. 
-각 단계를 명확하게 정의하고, 한 단계씩 완료한 후 다음 단계로 진행합니다.
+
+이 문서는 크롬 익스텐션 기반 암호화폐 자동매매 봇을 단계별로 구현하기 위한 완전한 가이드입니다. 각 Phase는 독립적으로 완료 가능하며, 실제 테스트를 통해 검증된 구현 방법을 제공합니다.
+
+### 🎯 구현 전략
+- **최소 기능으로 시작**: 핵심 기능만 구현하여 동작 확인
+- **단계별 테스트**: 각 단계마다 실제로 테스트하며 진행
+- **점진적 확장**: 기본 기능 완성 후 추가 기능 구현
+- **안정성 우선**: 빠른 개발보다 안정적인 동작 우선
+
+### ⏱️ 총 구현 시간: 약 20-30시간
+- **Phase 1-4**: 기본 구조 (6시간)
+- **Phase 5-7**: 핵심 기능 (12시간)
+- **Phase 8-11**: 고급 기능 (8-12시간)
 
 ---
 
-## 🎯 구현 전략
-1. **최소 기능으로 시작**: 핵심 기능만 구현하여 동작 확인
-2. **단계별 테스트**: 각 단계마다 실제로 테스트하며 진행
-3. **점진적 확장**: 기본 기능 완성 후 추가 기능 구현
-4. **안정성 우선**: 빠른 개발보다 안정적인 동작 우선
+## 🎯 Phase 1: 기본 구조 설정 (2시간) ✅ 완료
+
+### 📋 목표
+최소한의 파일 구조와 manifest만으로 익스텐션 동작 확인
+
+### 🛠️ 구현 단계
+
+#### 1-1. 프로젝트 초기 설정 (30분)
+```bash
+# 프로젝트 폴더 생성
+mkdir tradingbot_extension
+cd tradingbot_extension
+
+# 기본 폴더 구조 생성
+mkdir popup background content utils docs
+```
+
+#### 1-2. Manifest 설정 (30분)
+```json
+{
+  "manifest_version": 3,
+  "name": "Crypto Trading Bot",
+  "version": "1.0.0",
+  "description": "Chrome Extension based Crypto Auto Trading Bot",
+  
+  "side_panel": {
+    "default_path": "popup/popup.html"
+  },
+  
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab"
+  ],
+  
+  "background": {
+    "service_worker": "background/background.js"
+  }
+}
+```
+
+#### 1-3. 기본 HTML 구조 (30분)
+```html
+<!-- popup/popup.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Trading Bot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Trading Bot</h1>
+    <p>Hello World!</p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
+```
+
+#### 1-4. 테스트 및 검증 (30분)
+- [ ] Chrome에 익스텐션 로드
+- [ ] 사이드 패널이 정상적으로 열리는지 확인
+- [ ] 콘솔 에러 없는지 확인
+
+### ✅ 완료 조건
+익스텐션 사이드 패널이 에러 없이 열림
+
+### 🚨 문제 해결
+**문제**: 사이드 패널이 열리지 않음
+**해결**: manifest.json의 side_panel 경로 확인
 
 ---
 
-## 📝 Phase 1: 기본 구조 설정 (1단계) ✅ 완료
-**목표**: 최소한의 파일 구조와 manifest만으로 익스텐션 동작 확인
+## 🎯 Phase 2: 사이드 패널 UI 구현 (3시간) ✅ 완료
 
-### 1-1. Manifest 설정
-- [x] manifest.json 기본 구조 작성 (사이드 패널 형식)
-- [x] 버전, 이름, 설명만 포함
-- [x] 빈 popup.html 생성
-- [x] 익스텐션 로드 확인
+### 📋 목표
+사용자가 볼 수 있는 기본 UI 구현
 
-### 1-2. 기본 HTML 구조
-- [x] popup.html 작성
-- [x] 간단한 "Hello World" 메시지만 표시
-- [x] CSS 없이 순수 HTML만
+### 🛠️ 구현 단계
 
-### 1-3. 테스트
-- [x] Chrome에 익스텐션 로드
-- [x] 사이드 패널이 정상적으로 열리는지 확인
-- [x] 콘솔 에러 없는지 확인
+#### 2-1. HTML 구조 확장 (1시간)
+```html
+<div class="container">
+  <header>
+    <h1>🤖 Trading Bot</h1>
+    <div class="status">대기 중</div>
+  </header>
+  
+  <section class="exchange-section">
+    <h3>거래소 선택</h3>
+    <select id="exchangeSelect">
+      <option value="gate">Gate.io</option>
+      <option value="binance">Binance</option>
+      <option value="upbit">Upbit</option>
+    </select>
+    <button id="goToExchange">이동</button>
+  </section>
+  
+  <section class="control-section">
+    <button id="startTrading" class="btn-primary">거래 시작</button>
+    <button id="stopTrading" class="btn-secondary">거래 중단</button>
+  </section>
+</div>
+```
 
-**완료 조건**: 익스텐션 사이드 패널이 에러 없이 열림 ✅
+#### 2-2. CSS 스타일링 (1시간)
+```css
+.container {
+  width: 350px;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
----
+.btn-primary {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
 
-## 📝 Phase 2: 사이드 패널 UI 구현 (2단계) ✅ 완료
-**목표**: 사용자가 볼 수 있는 기본 UI 구현
+.btn-primary:hover {
+  background: #45a049;
+}
+```
 
-### 2-1. HTML 구조
-- [x] 상태 표시 영역 추가
-- [x] 버튼 영역 추가 (거래 시작/중단)
-- [x] 간단한 설정 영역 추가
-- [x] 거래소 선택 영역 추가
+#### 2-3. 기본 JavaScript (1시간)
+```javascript
+// popup/popup.js
+document.addEventListener('DOMContentLoaded', function() {
+  const startBtn = document.getElementById('startTrading');
+  const stopBtn = document.getElementById('stopTrading');
+  const exchangeSelect = document.getElementById('exchangeSelect');
+  const goToExchangeBtn = document.getElementById('goToExchange');
+  
+  startBtn.addEventListener('click', () => {
+    console.log('거래 시작 클릭됨');
+  });
+  
+  stopBtn.addEventListener('click', () => {
+    console.log('거래 중단 클릭됨');
+  });
+  
+  goToExchangeBtn.addEventListener('click', () => {
+    const exchange = exchangeSelect.value;
+    console.log(`${exchange} 거래소로 이동`);
+  });
+});
+```
 
-### 2-2. CSS 스타일링
-- [x] popup.css 작성
-- [x] 기본 색상 및 레이아웃
-- [x] 반응형 레이아웃 (가로 스크롤바 제거)
+### ✅ 완료 조건
+UI가 정상적으로 표시되고 버튼이 작동함
 
-### 2-3. 기본 JavaScript
-- [x] popup.js 생성
-- [x] 버튼 클릭 이벤트 리스너 추가
-- [x] 콘솔에 클릭 로그 출력
-- [x] 거래소 선택 및 이동 기능
-
-### 2-4. 테스트
-- [x] 모든 버튼이 표시되는지 확인
-- [x] 버튼 클릭 시 콘솔 로그 확인
-- [x] 레이아웃이 깨지지 않는지 확인
-
-**완료 조건**: UI가 정상적으로 표시되고 버튼이 작동함 ✅
-
----
-
-## 📝 Phase 3: Chrome APIs 연동 (3단계) ✅ 완료
-**목표**: Chrome 확장 API 기본 사용법 익히기
-
-### 3-1. Storage API
-- [x] 간단한 데이터 저장/로드 테스트
-- [x] 설정값 저장 구현 (거래 주기, 거래소 선택)
-- [x] 저장된 값 불러오기
-
-### 3-2. Tabs API
-- [x] 현재 활성 탭 확인
-- [x] 탭 URL 읽기
-- [x] 새 탭 열기 (거래소 이동 기능)
-
-### 3-3. Messages API
-- [x] Popup → Background 통신
-- [x] 간단한 상태 전달 테스트 (거래 시작/중단)
-
-### 3-4. 테스트
-- [x] 각 API가 정상 작동하는지 확인
-- [x] 콘솔에 올바른 값 출력되는지 확인
-
-**완료 조건**: Chrome APIs가 정상적으로 작동함 ✅
-
----
-
-## 📝 Phase 4: Content Script 기본 (4단계) ✅ 완료
-**목표**: 웹페이지에 스크립트 주입하여 DOM 조작
-
-### 4-1. Content Script 추가
-- [x] manifest.json에 content script 추가
-- [x] content.js 생성
-- [x] 간단한 DOM 조작 (거래소 감지)
-
-### 4-2. 거래소 페이지 감지
-- [x] 현재 페이지 URL 확인
-- [x] 거래소 판별 로직 구현 (간소화됨)
-- [x] 지원/비지원 페이지 안내 (제거됨)
-
-### 4-3. 기본 통신
-- [x] Content → Popup 통신
-- [x] Content → Background 통신
-- [x] 현재 거래소 정보 전달
-
-### 4-4. 테스트
-- [x] 거래소 페이지에서 정상 작동 확인
-- [x] 거래소 선택 및 이동 기능 확인
-- [x] 메시지 전달 정상 확인
-
-**완료 조건**: 거래소 페이지에서 정상적으로 작동하며 통신 가능 ✅
+### 🚨 문제 해결
+**문제**: 레이아웃이 깨짐
+**해결**: CSS width 고정, overflow 처리
 
 ---
 
-## 📝 Phase 5: 가격 정보 추출 (5단계) ✅ 완료
-**목표**: 거래소 페이지에서 가격 정보 읽기
+## 🎯 Phase 3: Chrome APIs 연동 (2시간) ✅ 완료
 
-### 5-1. 가격 추출기 구현
-- [x] 자본금(Assets) 추출 함수 구현
-- [x] 현재가(Price) 추출 함수 구현
-- [x] 사용자 지정 셀렉터로 데이터 추출
-- [x] Dynamic Script Injection을 통한 안정적인 추출
+### 📋 목표
+Chrome 확장 API 기본 사용법 익히기
 
-### 5-2. DOM 선택자 시스템
-- [x] 사용자 요소 선택 모드 구현
-- [x] 마우스 오버 하이라이트
-- [x] 클릭으로 셀렉터 자동 생성
-- [x] 셀렉터 저장 및 로드
+### 🛠️ 구현 단계
 
-### 5-3. 가격 업데이트
-- [x] 주기적으로 가격 읽기 (기본 1초)
-- [x] Popup에 가격 전송
-- [x] 데이터 표시 카드에 실시간 업데이트
+#### 3-1. Storage API 구현 (30분)
+```javascript
+// 설정 저장
+async function saveSettings(settings) {
+  await chrome.storage.local.set(settings);
+  console.log('설정 저장됨:', settings);
+}
 
-### 5-4. 추가 기능
-- [x] Leverage 입력 및 계산
-- [x] Amount 자동 계산 (Assets * Leverage / Price)
-- [x] One-Way/Hedge Mode 선택
-- [x] Position (%) 설정 기능
+// 설정 로드
+async function loadSettings() {
+  const result = await chrome.storage.local.get(['exchange', 'interval']);
+  console.log('설정 로드됨:', result);
+  return result;
+}
+```
 
-### 5-5. 테스트
-- [x] 실제 거래소에서 데이터 읽기
-- [x] 주기적 업데이트 정상 작동 확인
-- [x] 거래 시작/중단 동작 확인
+#### 3-2. Tabs API 구현 (30분)
+```javascript
+// 현재 탭 정보 가져오기
+async function getCurrentTab() {
+  const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+  return tab;
+}
 
-**완료 조건**: 거래소 페이지에서 실제 데이터를 읽어서 팝업에 표시 ✅
+// 새 탭 열기
+async function openExchange(exchange) {
+  const urls = {
+    gate: 'https://www.gate.io/trade/BTC_USDT',
+    binance: 'https://www.binance.com/en/trade/BTC_USDT',
+    upbit: 'https://upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC'
+  };
+  
+  await chrome.tabs.create({url: urls[exchange]});
+}
+```
 
----
+#### 3-3. Messages API 구현 (30분)
+```javascript
+// popup.js - 메시지 전송
+chrome.runtime.sendMessage({
+  action: 'startTrading',
+  data: { exchange: 'gate', interval: 1000 }
+});
 
-## 📝 Phase 6: 매크로 녹화 시스템 (6단계) ✅ 완료
-**목표**: 사용자가 버튼 위치를 지정하는 시스템
+// background.js - 메시지 수신
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'startTrading') {
+    console.log('거래 시작:', message.data);
+    sendResponse({success: true});
+  }
+});
+```
 
-### 6-1. 녹화 모드
-- [x] Long Record / Short Record 버튼 구현
-- [x] 녹화 상태 표시 (Stop Recording으로 변경)
-- [x] 녹화 중 시각적 피드백 (빨간색 표시)
-- [x] ESC 키로 녹화 중단 기능
+#### 3-4. 통합 테스트 (30분)
+- [ ] 각 API가 정상 작동하는지 확인
+- [ ] 콘솔에 올바른 값 출력되는지 확인
+- [ ] 에러 처리 구현
 
-### 6-2. 하이브리드 요소 선택 시스템
-- [x] 클릭한 요소 저장 (셀렉터 + 키워드 + 위치)
-- [x] 스마트 셀렉터 생성 (Long/Short 버튼 구분)
-- [x] 키워드 기반 요소 탐지
-- [x] 위치 기반 백업 시스템
-- [x] 클릭 유형 분석 (OPEN_TAB, LONG_BUTTON, SHORT_BUTTON 등)
+### ✅ 완료 조건
+Chrome APIs가 정상적으로 작동함
 
-### 6-3. 매크로 저장 및 최적화
-- [x] 매크로 데이터 구조 (액션 타입, 셀렉터, 키워드, 위치)
-- [x] Chrome Storage에 저장 (longMacro, shortMacro)
-- [x] 저장된 매크로 불러오기
-- [x] 키보드 입력 최적화 (Amount 필드 자동 대체)
-- [x] 이벤트 리스너 최적화 (AbortController 사용)
-
-### 6-4. 성능 최적화
-- [x] Content Script 수동 주입 시스템
-- [x] 이벤트 리스너 효율적 관리
-- [x] 입력 이벤트 쓰로틀링
-- [x] 백그라운드 자동 실행 방지
-
-### 6-5. 테스트
-- [x] 녹화 기능 정상 작동 확인
-- [x] 매크로 저장 확인
-- [x] 매크로 재로드 확인
-- [x] Long/Short 구분 정확성 확인
-
-**완료 조건**: 매크로를 녹화하고 저장할 수 있음 ✅
-
----
-
-## 📝 Phase 7: 매크로 실행 (7단계) ✅ 완료
-**목표**: 녹화한 매크로 실행
-
-### 7-1. 하이브리드 매크로 실행기
-- [x] 저장된 매크로 읽기 (Chrome Storage에서 로드)
-- [x] 단계별 실행 (액션별 순차 실행)
-- [x] 셀렉터 우선 + 스마트 탐지 백업 시스템
-- [x] 텍스트 검증을 통한 Long/Short 버튼 정확성 보장
-
-### 7-2. 스마트 요소 탐지 시스템
-- [x] TradingElementDetector 클래스 구현
-- [x] 키워드 기반 요소 찾기 (정확한 매칭 + 포함 매칭)
-- [x] 위치 기반 검증 (recorded position vs current position)
-- [x] 거래 영역 한정 탐색 (성능 최적화)
-- [x] 캐싱 시스템 (DOM 스캔 결과 캐시)
-
-### 7-3. 고급 에러 처리 및 검증
-- [x] 요소를 찾지 못한 경우 스마트 탐지로 재시도
-- [x] 탭 불일치 검증 (Open/Close 탭 확인)
-- [x] 텍스트 불일치 검증 (Long/Short 버튼 확인)
-- [x] 상세한 디버깅 로그 (액션별 성공/실패 추적)
-- [x] 사용자 친화적 에러 메시지
-
-### 7-4. Manual Trading 시스템
-- [x] Manual Long / Manual Short 버튼 구현
-- [x] 매크로 존재 여부 확인
-- [x] Amount 계산값 자동 입력
-- [x] 실행 결과 피드백
-
-### 7-5. UI 개선 사항
-- [x] 버튼 상태 표시 (has-data, has-macro 클래스)
-- [x] 매크로 저장 상태 시각적 피드백
-- [x] 실행 중 상태 표시
-- [x] 성공/실패 메시지 표시
-
-### 7-6. 실행 테스트
-- [x] Long 매크로 실행 테스트 (정상 작동)
-- [x] Short 매크로 실행 테스트 (Long/Short 구분 문제 해결)
-- [x] 복잡한 시퀀스 테스트 (Open 탭 + Amount + Long/Short)
-- [x] 에러 발생 시 처리 확인
-
-**완료 조건**: 녹화한 매크로를 정상적으로 실행함 ✅
+### 🚨 문제 해결
+**문제**: Storage API 권한 오류
+**해결**: manifest.json에 "storage" 권한 추가
 
 ---
 
-## 📝 Phase 8: 기술적 지표 계산 (8단계)
-**목표**: 볼린저 밴드 등 기술적 지표 계산
+## 🎯 Phase 4: Content Script 기본 (2시간) ✅ 완료
 
-### 8-1. 기본 함수 구현
-- [ ] 가격 데이터 저장
-- [ ] SMA 계산
-- [ ] 표준편차 계산
-- [ ] 볼린저 밴드 계산
+### 📋 목표
+웹페이지에 스크립트 주입하여 DOM 조작
 
-### 8-2. 지표 모듈
-- [ ] indicators.js 생성
-- [ ] 클래스/함수 구조
-- [ ] 데이터 관리
+### 🛠️ 구현 단계
 
-### 8-3. 신호 생성
-- [ ] 매수 신호 판별
-- [ ] 매도 신호 판별
-- [ ] 신호 확인 함수
+#### 4-1. Content Script 설정 (30분)
+```json
+// manifest.json에 추가
+"content_scripts": [
+  {
+    "matches": ["https://*.gate.io/*", "https://*.binance.com/*"],
+    "js": ["content/content.js"],
+    "run_at": "document_end"
+  }
+]
+```
 
-### 8-4. 테스트
-- [ ] 샘플 데이터로 계산
-- [ ] 결과가 정확한지 확인
-- [ ] 신호가 올바르게 생성되는지 확인
+#### 4-2. 거래소 페이지 감지 (45분)
+```javascript
+// content/content.js
+class ExchangeDetector {
+  static detect() {
+    const url = window.location.href;
+    
+    if (url.includes('gate.io')) {
+      return { name: 'gate', supported: true };
+    } else if (url.includes('binance.com')) {
+      return { name: 'binance', supported: true };
+    } else if (url.includes('upbit.com')) {
+      return { name: 'upbit', supported: true };
+    }
+    
+    return { name: 'unknown', supported: false };
+  }
+}
 
-**완료 조건**: 볼린저 밴드 계산 및 신호 생성이 정상 작동
+const exchange = ExchangeDetector.detect();
+console.log('감지된 거래소:', exchange);
+```
 
----
+#### 4-3. 기본 통신 구현 (45분)
+```javascript
+// Content → Background 통신
+chrome.runtime.sendMessage({
+  action: 'exchangeDetected',
+  exchange: exchange
+});
 
-## 📝 Phase 9: 자동매매 로직 (9단계)
-**목표**: 신호에 따라 자동으로 매매
+// Content → Popup 통신 (Storage 활용)
+chrome.storage.local.set({
+  currentExchange: exchange,
+  lastUpdate: Date.now()
+});
+```
 
-### 9-1. 거래 로직
-- [ ] 신호 확인 주기 설정
-- [ ] 매수 신호 시 매크로 실행
-- [ ] 매도 신호 시 매크로 실행
+### ✅ 완료 조건
+거래소 페이지에서 정상적으로 작동하며 통신 가능
 
-### 9-2. 상태 관리
-- [ ] 현재 포지션 추적
-- [ ] 거래 내역 저장
-- [ ] 거래 제어 (시작/중단)
-
-### 9-3. 안전 장치
-- [ ] 거래 간격 제한
-- [ ] 최대 손실 제한
-- [ ] 중복 주문 방지
-
-### 9-4. 테스트
-- [ ] 자동매매 시작/중단
-- [ ] 신호 발생 시 주문 실행
-- [ ] 상태 추적 정확성 확인
-
-**완료 조건**: 신호에 따라 자동으로 매매가 실행됨
-
----
-
-## 📝 Phase 10: 사용자 인터페이스 완성 (10단계)
-**목표**: 모든 기능을 사용할 수 있는 완성된 UI
-
-### 10-1. 설정 페이지
-- [ ] 옵션 페이지 구현
-- [ ] 전략 설정 UI
-- [ ] 매크로 관리 UI
-
-### 10-2. 통계 및 내역
-- [ ] 거래 내역 표시
-- [ ] 통계 정보 표시
-- [ ] 차트/그래프 (선택사항)
-
-### 10-3. 알림 시스템
-- [ ] 거래 알림
-- [ ] 에러 알림
-- [ ] 상태 변경 알림
-
-### 10-4. 최종 테스트
-- [ ] 모든 기능 통합 테스트
-- [ ] 사용자 시나리오 테스트
-- [ ] 에러 처리 확인
-
-**완료 조건**: 모든 기능이 UI를 통해 정상 작동
+### 🚨 문제 해결
+**문제**: Content Script가 로드되지 않음
+**해결**: matches 패턴 확인, 권한 설정 확인
 
 ---
 
-## 📝 Phase 11: 추가 기능 구현 (11단계)
-**목표**: 프로젝트 계획의 추가 기능 구현
+## 🎯 Phase 5: 가격 정보 추출 (4시간) ✅ 완료
 
-### 11-1. 다양한 전략
-- [ ] RSI 전략
-- [ ] MACD 전략
-- [ ] 이동평균선 전략
-- [ ] 스토캐스틱 전략
+### 📋 목표
+거래소 페이지에서 가격 정보 읽기
 
-### 11-2. 고급 기능
-- [ ] 지정가 주문
-- [ ] 레버리지 설정
-- [ ] 손절/익절 설정
+### 🛠️ 구현 단계
 
-### 11-3. 데이터 분석
-- [ ] 백테스팅
-- [ ] 성과 분석
-- [ ] 최적화 도구
+#### 5-1. 가격 추출기 구현 (2시간)
+```javascript
+class PriceExtractor {
+  constructor() {
+    this.assetsSelector = null;
+    this.priceSelector = null;
+  }
+  
+  // 사용자 요소 선택 모드
+  enableElementSelection(type) {
+    document.body.style.cursor = 'crosshair';
+    
+    const handleClick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const element = event.target;
+      const selector = this.generateSelector(element);
+      
+      if (type === 'assets') {
+        this.assetsSelector = selector;
+      } else if (type === 'price') {
+        this.priceSelector = selector;
+      }
+      
+      this.cleanup();
+      this.saveSelectors();
+    };
+    
+    document.addEventListener('click', handleClick, true);
+  }
+  
+  // CSS 셀렉터 생성
+  generateSelector(element) {
+    const path = [];
+    let current = element;
+    
+    while (current && current !== document.body) {
+      let selector = current.tagName.toLowerCase();
+      
+      if (current.id) {
+        selector += `#${current.id}`;
+        path.unshift(selector);
+        break;
+      }
+      
+      if (current.className) {
+        selector += `.${current.className.split(' ').join('.')}`;
+      }
+      
+      path.unshift(selector);
+      current = current.parentElement;
+    }
+    
+    return path.join(' > ');
+  }
+  
+  // 데이터 추출
+  extractAssets() {
+    if (!this.assetsSelector) return null;
+    
+    const element = document.querySelector(this.assetsSelector);
+    if (!element) return null;
+    
+    const text = element.textContent.trim();
+    const match = text.match(/[\d,]+\.?\d*/);
+    return match ? parseFloat(match[0].replace(/,/g, '')) : null;
+  }
+  
+  extractPrice() {
+    if (!this.priceSelector) return null;
+    
+    const element = document.querySelector(this.priceSelector);
+    if (!element) return null;
+    
+    const text = element.textContent.trim();
+    const match = text.match(/[\d,]+\.?\d*/);
+    return match ? parseFloat(match[0].replace(/,/g, '')) : null;
+  }
+}
+```
 
-### 11-4. 테스트 및 최적화
-- [ ] 성능 최적화
-- [ ] 메모리 관리
-- [ ] 사용자 경험 개선
+#### 5-2. 실시간 업데이트 시스템 (1시간)
+```javascript
+class RealTimeUpdater {
+  constructor() {
+    this.extractor = new PriceExtractor();
+    this.interval = null;
+  }
+  
+  start(intervalMs = 1000) {
+    this.interval = setInterval(() => {
+      const assets = this.extractor.extractAssets();
+      const price = this.extractor.extractPrice();
+      
+      if (assets !== null && price !== null) {
+        const amount = this.calculateAmount(assets, price);
+        
+        // Popup으로 데이터 전송
+        chrome.storage.local.set({
+          currentAssets: assets,
+          currentPrice: price,
+          currentAmount: amount,
+          lastUpdate: Date.now()
+        });
+      }
+    }, intervalMs);
+  }
+  
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+  
+  calculateAmount(assets, price) {
+    // Assets × Leverage × Position% ÷ Price
+    const leverage = 1; // 기본값
+    const positionPercent = 0.1; // 10%
+    
+    return (assets * leverage * positionPercent) / price;
+  }
+}
+```
+
+#### 5-3. UI 연동 (1시간)
+```javascript
+// popup.js에서 실시간 데이터 표시
+function updateDataDisplay() {
+  chrome.storage.local.get(['currentAssets', 'currentPrice', 'currentAmount'], (result) => {
+    if (result.currentAssets) {
+      document.getElementById('assetsValue').textContent = result.currentAssets.toFixed(2);
+    }
+    if (result.currentPrice) {
+      document.getElementById('priceValue').textContent = result.currentPrice.toFixed(2);
+    }
+    if (result.currentAmount) {
+      document.getElementById('amountValue').textContent = result.currentAmount.toFixed(6);
+    }
+  });
+}
+
+// 1초마다 업데이트
+setInterval(updateDataDisplay, 1000);
+```
+
+### ✅ 완료 조건
+거래소 페이지에서 실제 데이터를 읽어서 팝업에 표시
+
+### 🚨 문제 해결
+**문제**: 셀렉터가 동작하지 않음
+**해결**: Dynamic Script Injection 사용
 
 ---
 
-## 📋 진행 상황 추적
-각 단계마다 다음을 기록합니다:
-- [ ] 구현 완료 여부
-- [ ] 테스트 완료 여부
-- [ ] 문제점 및 해결책
-- [ ] 다음 단계 계획
+## 🎯 Phase 6: 매크로 녹화 시스템 (4시간) ✅ 완료
+
+### 📋 목표
+사용자가 버튼 위치를 지정하는 시스템
+
+### 🛠️ 구현 단계
+
+#### 6-1. 녹화 모드 구현 (1시간)
+```javascript
+class MacroRecorder {
+  constructor() {
+    this.isRecording = false;
+    this.recordedActions = [];
+    this.currentMacroType = null; // 'long' or 'short'
+  }
+  
+  startRecording(type) {
+    this.isRecording = true;
+    this.currentMacroType = type;
+    this.recordedActions = [];
+    
+    // 시각적 피드백
+    document.body.style.border = '3px solid red';
+    document.body.style.cursor = 'crosshair';
+    
+    // 이벤트 리스너 등록
+    document.addEventListener('click', this.handleClick.bind(this), true);
+    document.addEventListener('keydown', this.handleKeydown.bind(this), true);
+    
+    console.log(`${type} 매크로 녹화 시작`);
+  }
+  
+  stopRecording() {
+    this.isRecording = false;
+    
+    // 시각적 피드백 제거
+    document.body.style.border = '';
+    document.body.style.cursor = '';
+    
+    // 이벤트 리스너 제거
+    document.removeEventListener('click', this.handleClick, true);
+    document.removeEventListener('keydown', this.handleKeydown, true);
+    
+    // 매크로 저장
+    this.saveMacro();
+    
+    console.log(`${this.currentMacroType} 매크로 녹화 완료`);
+  }
+  
+  handleClick(event) {
+    if (!this.isRecording) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const element = event.target;
+    const action = this.analyzeClickAction(element);
+    
+    this.recordedActions.push(action);
+    console.log('액션 기록됨:', action);
+  }
+  
+  handleKeydown(event) {
+    if (!this.isRecording) return;
+    
+    if (event.key === 'Escape') {
+      this.stopRecording();
+    }
+  }
+}
+```
+
+#### 6-2. 하이브리드 요소 선택 시스템 (2시간)
+```javascript
+analyzeClickAction(element) {
+  const rect = element.getBoundingClientRect();
+  const text = element.textContent.trim().toLowerCase();
+  
+  // 액션 타입 분석
+  let actionType = 'CLICK';
+  if (text.includes('long') || text.includes('buy')) {
+    actionType = 'LONG_BUTTON';
+  } else if (text.includes('short') || text.includes('sell')) {
+    actionType = 'SHORT_BUTTON';
+  } else if (element.tagName === 'INPUT') {
+    actionType = 'INPUT_FIELD';
+  } else if (text.includes('open') || text.includes('close')) {
+    actionType = 'TAB_BUTTON';
+  }
+  
+  return {
+    type: actionType,
+    selector: this.generateSmartSelector(element),
+    keywords: this.extractKeywords(element),
+    position: {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    },
+    text: text,
+    timestamp: Date.now()
+  };
+}
+
+generateSmartSelector(element) {
+  // Long/Short 버튼 구분을 위한 스마트 셀렉터
+  const path = [];
+  let current = element;
+  
+  while (current && current !== document.body) {
+    let selector = current.tagName.toLowerCase();
+    
+    if (current.id) {
+      selector += `#${current.id}`;
+      path.unshift(selector);
+      break;
+    }
+    
+    if (current.className) {
+      const classes = current.className.split(' ').filter(c => c.trim());
+      if (classes.length > 0) {
+        selector += `.${classes.join('.')}`;
+      }
+    }
+    
+    // nth-child 추가 (같은 클래스 버튼 구분용)
+    const siblings = Array.from(current.parentElement?.children || []);
+    const index = siblings.indexOf(current);
+    if (index > 0) {
+      selector += `:nth-child(${index + 1})`;
+    }
+    
+    path.unshift(selector);
+    current = current.parentElement;
+  }
+  
+  return path.join(' > ');
+}
+```
+
+#### 6-3. 매크로 저장 및 최적화 (1시간)
+```javascript
+async saveMacro() {
+  const macroKey = `${this.currentMacroType}Macro`;
+  
+  // 매크로 최적화
+  const optimizedActions = this.optimizeActions(this.recordedActions);
+  
+  await chrome.storage.local.set({
+    [macroKey]: optimizedActions
+  });
+  
+  console.log(`${this.currentMacroType} 매크로 저장됨:`, optimizedActions);
+}
+
+optimizeActions(actions) {
+  return actions.map(action => {
+    // Amount 입력 필드는 자동 계산값으로 대체
+    if (action.type === 'INPUT_FIELD') {
+      action.useCalculatedAmount = true;
+    }
+    
+    return action;
+  });
+}
+```
+
+### ✅ 완료 조건
+매크로를 녹화하고 저장할 수 있음
+
+### 🚨 문제 해결
+**문제**: Long/Short 버튼 구분 실패
+**해결**: nth-child 셀렉터 추가, 키워드 분석 강화
+
+---
+
+## 🎯 Phase 7: 매크로 실행 (4시간) ✅ 완료
+
+### 📋 목표
+녹화한 매크로 실행
+
+### 🛠️ 구현 단계
+
+#### 7-1. 하이브리드 매크로 실행기 (2시간)
+```javascript
+class MacroExecutor {
+  constructor() {
+    this.detector = new TradingElementDetector();
+  }
+  
+  async executeMacro(type) {
+    const macroKey = `${type}Macro`;
+    const result = await chrome.storage.local.get([macroKey]);
+    const macro = result[macroKey];
+    
+    if (!macro || macro.length === 0) {
+      throw new Error(`${type} 매크로가 없습니다.`);
+    }
+    
+    console.log(`${type} 매크로 실행 시작:`, macro);
+    
+    for (let i = 0; i < macro.length; i++) {
+      const action = macro[i];
+      await this.executeAction(action);
+      await this.delay(500); // 액션 간 지연
+    }
+    
+    console.log(`${type} 매크로 실행 완료`);
+  }
+  
+  async executeAction(action) {
+    let element = null;
+    
+    // 1차: 셀렉터로 요소 찾기
+    try {
+      element = document.querySelector(action.selector);
+      if (element && this.validateElement(element, action)) {
+        console.log('셀렉터로 요소 찾음:', action.selector);
+      } else {
+        element = null;
+      }
+    } catch (e) {
+      console.warn('셀렉터 실패:', e.message);
+    }
+    
+    // 2차: 스마트 탐지로 요소 찾기
+    if (!element) {
+      element = this.detector.findElement(action);
+      if (element) {
+        console.log('스마트 탐지로 요소 찾음:', action.type);
+      }
+    }
+    
+    if (!element) {
+      throw new Error(`요소를 찾을 수 없습니다: ${action.type}`);
+    }
+    
+    // 액션 실행
+    await this.performAction(element, action);
+  }
+  
+  validateElement(element, action) {
+    // 텍스트 검증
+    const elementText = element.textContent.trim().toLowerCase();
+    const expectedKeywords = action.keywords || [];
+    
+    if (expectedKeywords.length > 0) {
+      const hasKeyword = expectedKeywords.some(keyword => 
+        elementText.includes(keyword.toLowerCase())
+      );
+      if (!hasKeyword) {
+        console.warn('텍스트 불일치:', elementText, 'vs', expectedKeywords);
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  async performAction(element, action) {
+    switch (action.type) {
+      case 'LONG_BUTTON':
+      case 'SHORT_BUTTON':
+      case 'TAB_BUTTON':
+        element.click();
+        break;
+        
+      case 'INPUT_FIELD':
+        if (action.useCalculatedAmount) {
+          const amount = await this.getCalculatedAmount();
+          this.setInputValue(element, amount.toString());
+        }
+        break;
+        
+      default:
+        element.click();
+    }
+  }
+}
+```
+
+#### 7-2. 스마트 요소 탐지 시스템 (1.5시간)
+```javascript
+class TradingElementDetector {
+  constructor() {
+    this.cache = new Map();
+  }
+  
+  findElement(action) {
+    const cacheKey = `${action.type}_${action.keywords?.join('_')}`;
+    
+    // 캐시 확인
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      if (document.contains(cached)) {
+        return cached;
+      }
+      this.cache.delete(cacheKey);
+    }
+    
+    let element = null;
+    
+    switch (action.type) {
+      case 'LONG_BUTTON':
+        element = this.findTradingButton(['long', 'buy', '매수']);
+        break;
+        
+      case 'SHORT_BUTTON':
+        element = this.findTradingButton(['short', 'sell', '매도']);
+        break;
+        
+      case 'TAB_BUTTON':
+        element = this.findTabButton(action.keywords);
+        break;
+        
+      case 'INPUT_FIELD':
+        element = this.findAmountInput();
+        break;
+    }
+    
+    if (element) {
+      this.cache.set(cacheKey, element);
+    }
+    
+    return element;
+  }
+  
+  findTradingButton(keywords) {
+    // 거래 영역에서만 탐색 (성능 최적화)
+    const tradingArea = this.findTradingArea();
+    const searchArea = tradingArea || document;
+    
+    const buttons = searchArea.querySelectorAll('button, div[role="button"], span[role="button"]');
+    
+    for (const button of buttons) {
+      const text = button.textContent.trim().toLowerCase();
+      
+      // 정확한 매칭 우선
+      for (const keyword of keywords) {
+        if (text === keyword.toLowerCase()) {
+          return button;
+        }
+      }
+      
+      // 포함 매칭
+      for (const keyword of keywords) {
+        if (text.includes(keyword.toLowerCase())) {
+          return button;
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  findTradingArea() {
+    // 거래 영역을 찾는 휴리스틱
+    const selectors = [
+      '[class*="trading"]',
+      '[class*="order"]',
+      '[class*="trade-panel"]',
+      '[id*="trading"]',
+      '[id*="order"]'
+    ];
+    
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) return element;
+    }
+    
+    return null;
+  }
+}
+```
+
+#### 7-3. Manual Trading 시스템 (30분)
+```javascript
+// popup.js에서 수동 거래 버튼
+document.getElementById('manualLong').addEventListener('click', async () => {
+  try {
+    await chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      chrome.scripting.executeScript({
+        target: {tabId: tabs[0].id},
+        function: () => {
+          if (window.macroExecutor) {
+            window.macroExecutor.executeMacro('long');
+          }
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Long 매크로 실행 실패:', error);
+  }
+});
+```
+
+### ✅ 완료 조건
+녹화한 매크로를 정상적으로 실행함
+
+### 🚨 문제 해결
+**문제**: Long/Short 버튼 구분 실패
+**해결**: 텍스트 검증 + 스마트 탐지 조합
+
+---
+
+## 🎯 Phase 8: 기술적 지표 계산 (6시간)
+
+### 📋 목표
+볼린저 밴드 등 기술적 지표 계산 및 신호 생성
+
+### 🛠️ 구현 단계
+
+#### 8-1. 기본 함수 구현 (2시간)
+```javascript
+// utils/indicators.js
+class TechnicalIndicators {
+  constructor() {
+    this.priceHistory = [];
+    this.maxHistory = 100; // 최대 100개 데이터 보관
+  }
+  
+  // 가격 데이터 추가
+  addPrice(price, timestamp = Date.now()) {
+    this.priceHistory.push({ price, timestamp });
+    
+    // 최대 개수 초과 시 오래된 데이터 제거
+    if (this.priceHistory.length > this.maxHistory) {
+      this.priceHistory.shift();
+    }
+  }
+  
+  // 단순 이동평균 (SMA) 계산
+  calculateSMA(period = 20) {
+    if (this.priceHistory.length < period) {
+      return null;
+    }
+    
+    const recentPrices = this.priceHistory.slice(-period);
+    const sum = recentPrices.reduce((acc, item) => acc + item.price, 0);
+    return sum / period;
+  }
+  
+  // 표준편차 계산
+  calculateStandardDeviation(period = 20) {
+    if (this.priceHistory.length < period) {
+      return null;
+    }
+    
+    const sma = this.calculateSMA(period);
+    const recentPrices = this.priceHistory.slice(-period);
+    
+    const squaredDifferences = recentPrices.map(item => 
+      Math.pow(item.price - sma, 2)
+    );
+    
+    const variance = squaredDifferences.reduce((acc, val) => acc + val, 0) / period;
+    return Math.sqrt(variance);
+  }
+  
+  // 볼린저 밴드 계산
+  calculateBollingerBands(period = 20, multiplier = 2) {
+    const sma = this.calculateSMA(period);
+    const stdDev = this.calculateStandardDeviation(period);
+    
+    if (!sma || !stdDev) {
+      return null;
+    }
+    
+    return {
+      upper: sma + (stdDev * multiplier),
+      middle: sma,
+      lower: sma - (stdDev * multiplier),
+      currentPrice: this.getCurrentPrice()
+    };
+  }
+  
+  getCurrentPrice() {
+    return this.priceHistory.length > 0 
+      ? this.priceHistory[this.priceHistory.length - 1].price 
+      : null;
+  }
+}
+```
+
+#### 8-2. 신호 생성 시스템 (2시간)
+```javascript
+class TradingSignals {
+  constructor() {
+    this.indicators = new TechnicalIndicators();
+    this.lastSignal = null;
+    this.signalCooldown = 60000; // 1분 쿨다운
+  }
+  
+  // 볼린저 밴드 신호 생성
+  generateBollingerSignal() {
+    const bb = this.indicators.calculateBollingerBands();
+    if (!bb) return null;
+    
+    const { upper, lower, currentPrice } = bb;
+    let signal = null;
+    
+    // 매수 신호: 가격이 하단선 아래로
+    if (currentPrice < lower) {
+      signal = {
+        type: 'BUY',
+        reason: 'Price below Bollinger Lower Band',
+        price: currentPrice,
+        confidence: this.calculateConfidence(currentPrice, lower, 'below'),
+        timestamp: Date.now()
+      };
+    }
+    
+    // 매도 신호: 가격이 중앙선 위로 (또는 상단선 근처)
+    else if (currentPrice > bb.middle) {
+      signal = {
+        type: 'SELL',
+        reason: 'Price above Bollinger Middle Band',
+        price: currentPrice,
+        confidence: this.calculateConfidence(currentPrice, bb.middle, 'above'),
+        timestamp: Date.now()
+      };
+    }
+    
+    // 쿨다운 체크
+    if (signal && this.isSignalValid(signal)) {
+      this.lastSignal = signal;
+      return signal;
+    }
+    
+    return null;
+  }
+  
+  calculateConfidence(currentPrice, referencePrice, direction) {
+    const difference = Math.abs(currentPrice - referencePrice);
+    const percentage = (difference / referencePrice) * 100;
+    
+    // 차이가 클수록 신뢰도 높음 (최대 95%)
+    return Math.min(95, 50 + (percentage * 10));
+  }
+  
+  isSignalValid(signal) {
+    if (!this.lastSignal) return true;
+    
+    // 쿨다운 체크
+    const timeDiff = signal.timestamp - this.lastSignal.timestamp;
+    if (timeDiff < this.signalCooldown) return false;
+    
+    // 같은 타입 신호 연속 방지
+    if (signal.type === this.lastSignal.type) return false;
+    
+    return true;
+  }
+}
+```
+
+#### 8-3. 실시간 모니터링 시스템 (1.5시간)
+```javascript
+class AutoTradingEngine {
+  constructor() {
+    this.signals = new TradingSignals();
+    this.isRunning = false;
+    this.monitoringInterval = null;
+    this.priceUpdateInterval = null;
+  }
+  
+  start() {
+    if (this.isRunning) return;
+    
+    this.isRunning = true;
+    console.log('자동매매 엔진 시작');
+    
+    // 가격 데이터 수집 (3초마다)
+    this.priceUpdateInterval = setInterval(() => {
+      this.updatePriceData();
+    }, 3000);
+    
+    // 신호 모니터링 (10초마다)
+    this.monitoringInterval = setInterval(() => {
+      this.checkSignals();
+    }, 10000);
+  }
+  
+  stop() {
+    this.isRunning = false;
+    
+    if (this.priceUpdateInterval) {
+      clearInterval(this.priceUpdateInterval);
+      this.priceUpdateInterval = null;
+    }
+    
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+    
+    console.log('자동매매 엔진 중단');
+  }
+  
+  async updatePriceData() {
+    try {
+      // 현재 가격 가져오기 (기존 PriceExtractor 활용)
+      const result = await chrome.storage.local.get(['currentPrice']);
+      if (result.currentPrice) {
+        this.signals.indicators.addPrice(result.currentPrice);
+        console.log('가격 데이터 업데이트:', result.currentPrice);
+      }
+    } catch (error) {
+      console.error('가격 데이터 업데이트 실패:', error);
+    }
+  }
+  
+  async checkSignals() {
+    try {
+      const signal = this.signals.generateBollingerSignal();
+      
+      if (signal) {
+        console.log('거래 신호 생성:', signal);
+        await this.executeSignal(signal);
+      }
+    } catch (error) {
+      console.error('신호 체크 실패:', error);
+    }
+  }
+  
+  async executeSignal(signal) {
+    try {
+      const macroType = signal.type === 'BUY' ? 'long' : 'short';
+      
+      // 매크로 실행 (기존 MacroExecutor 활용)
+      if (window.macroExecutor) {
+        await window.macroExecutor.executeMacro(macroType);
+        
+        // 실행 결과 저장
+        await chrome.storage.local.set({
+          lastTrade: {
+            signal: signal,
+            executedAt: Date.now(),
+            success: true
+          }
+        });
+        
+        console.log(`${signal.type} 신호 실행 완료`);
+      }
+    } catch (error) {
+      console.error('신호 실행 실패:', error);
+      
+      // 실패 기록
+      await chrome.storage.local.set({
+        lastTrade: {
+          signal: signal,
+          executedAt: Date.now(),
+          success: false,
+          error: error.message
+        }
+      });
+    }
+  }
+}
+```
+
+#### 8-4. UI 연동 및 표시 (30분)
+```javascript
+// popup.js에 지표 표시 추가
+function updateIndicatorDisplay() {
+  chrome.storage.local.get(['currentPrice'], (result) => {
+    if (result.currentPrice && window.indicators) {
+      window.indicators.addPrice(result.currentPrice);
+      
+      const bb = window.indicators.calculateBollingerBands();
+      if (bb) {
+        document.getElementById('bbUpper').textContent = bb.upper.toFixed(2);
+        document.getElementById('bbMiddle').textContent = bb.middle.toFixed(2);
+        document.getElementById('bbLower').textContent = bb.lower.toFixed(2);
+        
+        // 신호 표시
+        const signal = window.tradingSignals.generateBollingerSignal();
+        if (signal) {
+          document.getElementById('currentSignal').textContent = 
+            `${signal.type} (${signal.confidence.toFixed(1)}%)`;
+        }
+      }
+    }
+  });
+}
+
+// 자동매매 시작/중단 버튼
+document.getElementById('startAutoTrading').addEventListener('click', () => {
+  if (window.autoTradingEngine) {
+    window.autoTradingEngine.start();
+    document.getElementById('autoTradingStatus').textContent = '실행 중';
+  }
+});
+
+document.getElementById('stopAutoTrading').addEventListener('click', () => {
+  if (window.autoTradingEngine) {
+    window.autoTradingEngine.stop();
+    document.getElementById('autoTradingStatus').textContent = '중단됨';
+  }
+});
+```
+
+### ✅ 완료 조건
+- [ ] 볼린저 밴드 계산이 정확함
+- [ ] 매수/매도 신호가 올바르게 생성됨
+- [ ] 실시간 모니터링이 정상 작동함
+- [ ] UI에 지표 정보가 표시됨
+
+### 🚨 문제 해결
+**문제**: 가격 데이터 부족으로 지표 계산 불가
+**해결**: 최소 데이터 요구사항 체크, 초기 데이터 수집 기간 설정
+
+**문제**: 신호 생성 과다
+**해결**: 쿨다운 시스템, 신뢰도 필터링 적용
+
+---
+
+## 🎯 Phase 9: 자동매매 로직 (4시간)
+
+### 📋 목표
+신호에 따라 완전 자동으로 매매 실행
+
+### 🛠️ 구현 단계
+
+#### 9-1. 포지션 관리 시스템 (1.5시간)
+```javascript
+class PositionManager {
+  constructor() {
+    this.currentPosition = null; // null, 'long', 'short'
+    this.positionSize = 0;
+    this.entryPrice = 0;
+    this.entryTime = null;
+  }
+  
+  async openPosition(type, price, size) {
+    if (this.currentPosition) {
+      console.warn('이미 포지션이 열려있습니다:', this.currentPosition);
+      return false;
+    }
+    
+    this.currentPosition = type;
+    this.positionSize = size;
+    this.entryPrice = price;
+    this.entryTime = Date.now();
+    
+    await this.savePosition();
+    console.log(`${type} 포지션 오픈:`, { price, size });
+    return true;
+  }
+  
+  async closePosition(price) {
+    if (!this.currentPosition) {
+      console.warn('닫을 포지션이 없습니다');
+      return false;
+    }
+    
+    const pnl = this.calculatePnL(price);
+    const holdingTime = Date.now() - this.entryTime;
+    
+    // 거래 내역 저장
+    await this.saveTrade({
+      type: this.currentPosition,
+      entryPrice: this.entryPrice,
+      exitPrice: price,
+      size: this.positionSize,
+      pnl: pnl,
+      holdingTime: holdingTime,
+      timestamp: Date.now()
+    });
+    
+    console.log(`${this.currentPosition} 포지션 클로즈:`, { 
+      entryPrice: this.entryPrice, 
+      exitPrice: price, 
+      pnl: pnl 
+    });
+    
+    // 포지션 초기화
+    this.currentPosition = null;
+    this.positionSize = 0;
+    this.entryPrice = 0;
+    this.entryTime = null;
+    
+    await this.savePosition();
+    return true;
+  }
+  
+  calculatePnL(currentPrice) {
+    if (!this.currentPosition) return 0;
+    
+    const priceDiff = this.currentPosition === 'long' 
+      ? currentPrice - this.entryPrice 
+      : this.entryPrice - currentPrice;
+      
+    return (priceDiff / this.entryPrice) * 100; // 수익률 %
+  }
+  
+  async savePosition() {
+    await chrome.storage.local.set({
+      currentPosition: {
+        type: this.currentPosition,
+        size: this.positionSize,
+        entryPrice: this.entryPrice,
+        entryTime: this.entryTime
+      }
+    });
+  }
+  
+  async saveTrade(trade) {
+    const result = await chrome.storage.local.get(['tradeHistory']);
+    const history = result.tradeHistory || [];
+    
+    history.push(trade);
+    
+    // 최대 100개 거래 내역 보관
+    if (history.length > 100) {
+      history.shift();
+    }
+    
+    await chrome.storage.local.set({ tradeHistory: history });
+  }
+}
+```
+
+#### 9-2. 리스크 관리 시스템 (1.5시간)
+```javascript
+class RiskManager {
+  constructor() {
+    this.maxLossPercent = 5; // 최대 5% 손실
+    this.maxTradesPerHour = 10; // 시간당 최대 10회 거래
+    this.minTradingInterval = 30000; // 최소 30초 간격
+    this.lastTradeTime = 0;
+    this.hourlyTradeCount = 0;
+    this.hourlyTradeReset = Date.now();
+  }
+  
+  canTrade() {
+    const now = Date.now();
+    
+    // 시간당 거래 횟수 리셋
+    if (now - this.hourlyTradeReset > 3600000) { // 1시간
+      this.hourlyTradeCount = 0;
+      this.hourlyTradeReset = now;
+    }
+    
+    // 거래 간격 체크
+    if (now - this.lastTradeTime < this.minTradingInterval) {
+      console.log('거래 간격 부족');
+      return false;
+    }
+    
+    // 시간당 거래 횟수 체크
+    if (this.hourlyTradeCount >= this.maxTradesPerHour) {
+      console.log('시간당 최대 거래 횟수 초과');
+      return false;
+    }
+    
+    return true;
+  }
+  
+  shouldStopLoss(currentPnL) {
+    return currentPnL <= -this.maxLossPercent;
+  }
+  
+  recordTrade() {
+    this.lastTradeTime = Date.now();
+    this.hourlyTradeCount++;
+  }
+  
+  async checkStopLoss(positionManager, currentPrice) {
+    if (!positionManager.currentPosition) return false;
+    
+    const pnl = positionManager.calculatePnL(currentPrice);
+    
+    if (this.shouldStopLoss(pnl)) {
+      console.log(`손절 실행: ${pnl.toFixed(2)}%`);
+      
+      // 반대 매크로 실행 (포지션 청산)
+      const closeMacroType = positionManager.currentPosition === 'long' ? 'short' : 'long';
+      
+      if (window.macroExecutor) {
+        await window.macroExecutor.executeMacro(closeMacroType);
+        await positionManager.closePosition(currentPrice);
+        this.recordTrade();
+        return true;
+      }
+    }
+    
+    return false;
+  }
+}
+```
+
+#### 9-3. 완전 자동매매 엔진 (1시간)
+```javascript
+class FullAutoTradingEngine extends AutoTradingEngine {
+  constructor() {
+    super();
+    this.positionManager = new PositionManager();
+    this.riskManager = new RiskManager();
+  }
+  
+  async checkSignals() {
+    try {
+      // 현재 가격 가져오기
+      const result = await chrome.storage.local.get(['currentPrice']);
+      const currentPrice = result.currentPrice;
+      
+      if (!currentPrice) return;
+      
+      // 손절 체크 (최우선)
+      const stopLossExecuted = await this.riskManager.checkStopLoss(
+        this.positionManager, 
+        currentPrice
+      );
+      
+      if (stopLossExecuted) return;
+      
+      // 거래 가능 여부 체크
+      if (!this.riskManager.canTrade()) return;
+      
+      // 신호 생성
+      const signal = this.signals.generateBollingerSignal();
+      if (!signal) return;
+      
+      console.log('거래 신호 감지:', signal);
+      
+      // 포지션 상태에 따른 처리
+      if (this.positionManager.currentPosition) {
+        await this.handlePositionClose(signal, currentPrice);
+      } else {
+        await this.handlePositionOpen(signal, currentPrice);
+      }
+      
+    } catch (error) {
+      console.error('자동매매 체크 실패:', error);
+    }
+  }
+  
+  async handlePositionOpen(signal, currentPrice) {
+    const positionType = signal.type === 'BUY' ? 'long' : 'short';
+    
+    // 신뢰도 체크
+    if (signal.confidence < 70) {
+      console.log('신뢰도 부족으로 거래 스킵:', signal.confidence);
+      return;
+    }
+    
+    try {
+      // 매크로 실행
+      const macroType = signal.type === 'BUY' ? 'long' : 'short';
+      
+      if (window.macroExecutor) {
+        await window.macroExecutor.executeMacro(macroType);
+        
+        // 포지션 기록
+        const result = await chrome.storage.local.get(['currentAmount']);
+        const positionSize = result.currentAmount || 0;
+        
+        await this.positionManager.openPosition(positionType, currentPrice, positionSize);
+        this.riskManager.recordTrade();
+        
+        console.log(`${positionType} 포지션 오픈 완료`);
+      }
+    } catch (error) {
+      console.error('포지션 오픈 실패:', error);
+    }
+  }
+  
+  async handlePositionClose(signal, currentPrice) {
+    const currentPos = this.positionManager.currentPosition;
+    
+    // 반대 신호인 경우에만 포지션 청산
+    const shouldClose = (currentPos === 'long' && signal.type === 'SELL') ||
+                       (currentPos === 'short' && signal.type === 'BUY');
+    
+    if (!shouldClose) return;
+    
+    try {
+      // 청산 매크로 실행
+      const closeMacroType = currentPos === 'long' ? 'short' : 'long';
+      
+      if (window.macroExecutor) {
+        await window.macroExecutor.executeMacro(closeMacroType);
+        await this.positionManager.closePosition(currentPrice);
+        this.riskManager.recordTrade();
+        
+        console.log(`${currentPos} 포지션 청산 완료`);
+      }
+    } catch (error) {
+      console.error('포지션 청산 실패:', error);
+    }
+  }
+}
+```
+
+### ✅ 완료 조건
+- [ ] 신호에 따라 자동으로 포지션 오픈/클로즈
+- [ ] 손절 시스템이 정상 작동
+- [ ] 거래 내역이 정확히 기록됨
+- [ ] 리스크 관리 규칙이 적용됨
+
+### 🚨 문제 해결
+**문제**: 과도한 거래 발생
+**해결**: 거래 간격 제한, 시간당 거래 횟수 제한
+
+**문제**: 손절이 작동하지 않음
+**해결**: 실시간 PnL 계산, 우선순위 체크 로직
+
+---
+
+## 🎯 Phase 10: 사용자 인터페이스 완성 (3시간)
+
+### 📋 목표
+모든 기능을 사용할 수 있는 완성된 UI
+
+### 🛠️ 구현 단계
+
+#### 10-1. 통계 대시보드 (1.5시간)
+```html
+<!-- popup.html에 통계 섹션 추가 -->
+<section class="stats-section">
+  <h3>📊 거래 통계</h3>
+  
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">총 거래</div>
+      <div class="stat-value" id="totalTrades">0</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">승률</div>
+      <div class="stat-value" id="winRate">0%</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">총 수익률</div>
+      <div class="stat-value" id="totalPnL">0%</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">현재 포지션</div>
+      <div class="stat-value" id="currentPosition">없음</div>
+    </div>
+  </div>
+  
+  <div class="recent-trades">
+    <h4>최근 거래</h4>
+    <div id="tradeList"></div>
+  </div>
+</section>
+```
+
+```javascript
+// 통계 업데이트 함수
+async function updateStats() {
+  const result = await chrome.storage.local.get(['tradeHistory', 'currentPosition']);
+  const trades = result.tradeHistory || [];
+  const position = result.currentPosition;
+  
+  // 기본 통계
+  document.getElementById('totalTrades').textContent = trades.length;
+  
+  // 승률 계산
+  const winningTrades = trades.filter(trade => trade.pnl > 0).length;
+  const winRate = trades.length > 0 ? (winningTrades / trades.length * 100).toFixed(1) : 0;
+  document.getElementById('winRate').textContent = `${winRate}%`;
+  
+  // 총 수익률
+  const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+  document.getElementById('totalPnL').textContent = `${totalPnL.toFixed(2)}%`;
+  
+  // 현재 포지션
+  const positionText = position?.type ? 
+    `${position.type.toUpperCase()} (${position.entryPrice})` : '없음';
+  document.getElementById('currentPosition').textContent = positionText;
+  
+  // 최근 거래 목록
+  updateRecentTrades(trades.slice(-5));
+}
+
+function updateRecentTrades(recentTrades) {
+  const tradeList = document.getElementById('tradeList');
+  tradeList.innerHTML = '';
+  
+  recentTrades.reverse().forEach(trade => {
+    const tradeElement = document.createElement('div');
+    tradeElement.className = `trade-item ${trade.pnl > 0 ? 'profit' : 'loss'}`;
+    tradeElement.innerHTML = `
+      <span class="trade-type">${trade.type.toUpperCase()}</span>
+      <span class="trade-pnl">${trade.pnl > 0 ? '+' : ''}${trade.pnl.toFixed(2)}%</span>
+      <span class="trade-time">${new Date(trade.timestamp).toLocaleTimeString()}</span>
+    `;
+    tradeList.appendChild(tradeElement);
+  });
+}
+```
+
+#### 10-2. 설정 페이지 (1시간)
+```html
+<!-- options/options.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Trading Bot Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Trading Bot 설정</h1>
+    
+    <section class="settings-section">
+      <h3>거래 설정</h3>
+      
+      <div class="setting-item">
+        <label for="leverage">레버리지</label>
+        <input type="number" id="leverage" min="1" max="100" value="1">
+      </div>
+      
+      <div class="setting-item">
+        <label for="positionPercent">포지션 크기 (%)</label>
+        <input type="number" id="positionPercent" min="1" max="100" value="10">
+      </div>
+      
+      <div class="setting-item">
+        <label for="maxLoss">최대 손실 (%)</label>
+        <input type="number" id="maxLoss" min="1" max="20" value="5">
+      </div>
+      
+      <div class="setting-item">
+        <label for="tradingMode">거래 모드</label>
+        <select id="tradingMode">
+          <option value="oneWay">One-Way</option>
+          <option value="hedge">Hedge</option>
+        </select>
+      </div>
+    </section>
+    
+    <section class="settings-section">
+      <h3>지표 설정</h3>
+      
+      <div class="setting-item">
+        <label for="bbPeriod">볼린저 밴드 기간</label>
+        <input type="number" id="bbPeriod" min="5" max="50" value="20">
+      </div>
+      
+      <div class="setting-item">
+        <label for="bbMultiplier">볼린저 밴드 배수</label>
+        <input type="number" id="bbMultiplier" min="1" max="3" step="0.1" value="2">
+      </div>
+      
+      <div class="setting-item">
+        <label for="minConfidence">최소 신뢰도 (%)</label>
+        <input type="number" id="minConfidence" min="50" max="95" value="70">
+      </div>
+    </section>
+    
+    <div class="button-group">
+      <button id="saveSettings" class="btn-primary">설정 저장</button>
+      <button id="resetSettings" class="btn-secondary">초기화</button>
+    </div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
+```
+
+#### 10-3. 알림 시스템 (30분)
+```javascript
+class NotificationManager {
+  static async showTradeNotification(trade) {
+    const title = `거래 ${trade.type === 'long' ? '매수' : '매도'} 실행`;
+    const message = `가격: ${trade.price}, 신뢰도: ${trade.confidence}%`;
+    
+    if (chrome.notifications) {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'assets/icon48.png',
+        title: title,
+        message: message
+      });
+    }
+  }
+  
+  static async showPnLNotification(pnl, positionType) {
+    const isProfit = pnl > 0;
+    const title = isProfit ? '💰 수익 발생' : '📉 손실 발생';
+    const message = `${positionType.toUpperCase()} 포지션: ${pnl > 0 ? '+' : ''}${pnl.toFixed(2)}%`;
+    
+    if (chrome.notifications) {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'assets/icon48.png',
+        title: title,
+        message: message
+      });
+    }
+  }
+  
+  static async showErrorNotification(error) {
+    if (chrome.notifications) {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'assets/icon48.png',
+        title: '⚠️ 오류 발생',
+        message: error.message || '알 수 없는 오류가 발생했습니다.'
+      });
+    }
+  }
+}
+```
+
+### ✅ 완료 조건
+- [ ] 거래 통계가 정확히 표시됨
+- [ ] 설정 페이지에서 모든 옵션 변경 가능
+- [ ] 알림이 적절한 시점에 표시됨
+- [ ] UI가 직관적이고 사용하기 쉬움
+
+---
+
+## 🎯 Phase 11: 추가 기능 구현 (6시간)
+
+### 📋 목표
+프로젝트 계획의 추가 기능 구현
+
+### 🛠️ 구현 단계
+
+#### 11-1. 다양한 전략 구현 (3시간)
+```javascript
+// RSI 전략
+class RSIStrategy {
+  constructor(period = 14) {
+    this.period = period;
+    this.priceChanges = [];
+  }
+  
+  calculateRSI(prices) {
+    // RSI 계산 로직
+    const gains = [];
+    const losses = [];
+    
+    for (let i = 1; i < prices.length; i++) {
+      const change = prices[i] - prices[i-1];
+      gains.push(change > 0 ? change : 0);
+      losses.push(change < 0 ? Math.abs(change) : 0);
+    }
+    
+    const avgGain = gains.slice(-this.period).reduce((a, b) => a + b, 0) / this.period;
+    const avgLoss = losses.slice(-this.period).reduce((a, b) => a + b, 0) / this.period;
+    
+    const rs = avgGain / avgLoss;
+    return 100 - (100 / (1 + rs));
+  }
+  
+  generateSignal(prices) {
+    if (prices.length < this.period + 1) return null;
+    
+    const rsi = this.calculateRSI(prices);
+    
+    if (rsi < 30) {
+      return { type: 'BUY', reason: 'RSI Oversold', confidence: 80 };
+    } else if (rsi > 70) {
+      return { type: 'SELL', reason: 'RSI Overbought', confidence: 80 };
+    }
+    
+    return null;
+  }
+}
+
+// MACD 전략
+class MACDStrategy {
+  constructor(fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+    this.fastPeriod = fastPeriod;
+    this.slowPeriod = slowPeriod;
+    this.signalPeriod = signalPeriod;
+  }
+  
+  calculateEMA(prices, period) {
+    const multiplier = 2 / (period + 1);
+    let ema = prices[0];
+    
+    for (let i = 1; i < prices.length; i++) {
+      ema = (prices[i] * multiplier) + (ema * (1 - multiplier));
+    }
+    
+    return ema;
+  }
+  
+  generateSignal(prices) {
+    if (prices.length < this.slowPeriod) return null;
+    
+    const fastEMA = this.calculateEMA(prices.slice(-this.fastPeriod), this.fastPeriod);
+    const slowEMA = this.calculateEMA(prices.slice(-this.slowPeriod), this.slowPeriod);
+    const macd = fastEMA - slowEMA;
+    
+    // 간단한 MACD 신호 (실제로는 더 복잡함)
+    if (macd > 0) {
+      return { type: 'BUY', reason: 'MACD Bullish', confidence: 75 };
+    } else if (macd < 0) {
+      return { type: 'SELL', reason: 'MACD Bearish', confidence: 75 };
+    }
+    
+    return null;
+  }
+}
+```
+
+#### 11-2. 백테스팅 시스템 (2시간)
+```javascript
+class BacktestEngine {
+  constructor(strategy, initialBalance = 10000) {
+    this.strategy = strategy;
+    this.initialBalance = initialBalance;
+    this.balance = initialBalance;
+    this.position = null;
+    this.trades = [];
+  }
+  
+  async runBacktest(historicalData) {
+    console.log('백테스팅 시작...');
+    
+    for (let i = 20; i < historicalData.length; i++) {
+      const currentData = historicalData.slice(0, i + 1);
+      const currentPrice = currentData[currentData.length - 1].price;
+      
+      const signal = this.strategy.generateSignal(
+        currentData.map(d => d.price)
+      );
+      
+      if (signal) {
+        await this.processSignal(signal, currentPrice, currentData[i].timestamp);
+      }
+    }
+    
+    return this.generateReport();
+  }
+  
+  async processSignal(signal, price, timestamp) {
+    if (signal.type === 'BUY' && !this.position) {
+      // 매수
+      const amount = this.balance * 0.1; // 10% 투자
+      const quantity = amount / price;
+      
+      this.position = {
+        type: 'long',
+        entryPrice: price,
+        quantity: quantity,
+        entryTime: timestamp
+      };
+      
+      this.balance -= amount;
+      
+    } else if (signal.type === 'SELL' && this.position) {
+      // 매도
+      const exitValue = this.position.quantity * price;
+      const pnl = exitValue - (this.position.quantity * this.position.entryPrice);
+      const pnlPercent = (pnl / (this.position.quantity * this.position.entryPrice)) * 100;
+      
+      this.trades.push({
+        entryPrice: this.position.entryPrice,
+        exitPrice: price,
+        pnl: pnl,
+        pnlPercent: pnlPercent,
+        holdingTime: timestamp - this.position.entryTime
+      });
+      
+      this.balance += exitValue;
+      this.position = null;
+    }
+  }
+  
+  generateReport() {
+    const totalTrades = this.trades.length;
+    const winningTrades = this.trades.filter(t => t.pnl > 0).length;
+    const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+    const totalReturn = ((this.balance - this.initialBalance) / this.initialBalance) * 100;
+    
+    return {
+      totalTrades,
+      winRate: winRate.toFixed(2),
+      totalReturn: totalReturn.toFixed(2),
+      finalBalance: this.balance.toFixed(2),
+      trades: this.trades
+    };
+  }
+}
+```
+
+#### 11-3. 성능 최적화 (1시간)
+```javascript
+// 메모리 관리
+class MemoryManager {
+  static cleanup() {
+    // 오래된 데이터 정리
+    chrome.storage.local.get(['tradeHistory', 'priceHistory'], (result) => {
+      const trades = result.tradeHistory || [];
+      const prices = result.priceHistory || [];
+      
+      // 최근 100개 거래만 보관
+      if (trades.length > 100) {
+        const recentTrades = trades.slice(-100);
+        chrome.storage.local.set({ tradeHistory: recentTrades });
+      }
+      
+      // 최근 200개 가격 데이터만 보관
+      if (prices.length > 200) {
+        const recentPrices = prices.slice(-200);
+        chrome.storage.local.set({ priceHistory: recentPrices });
+      }
+    });
+  }
+  
+  static startCleanupSchedule() {
+    // 1시간마다 정리
+    setInterval(() => {
+      this.cleanup();
+    }, 3600000);
+  }
+}
+
+// 성능 모니터링
+class PerformanceMonitor {
+  static measureExecutionTime(func, name) {
+    return async function(...args) {
+      const start = performance.now();
+      const result = await func.apply(this, args);
+      const end = performance.now();
+      
+      console.log(`${name} 실행 시간: ${(end - start).toFixed(2)}ms`);
+      return result;
+    };
+  }
+}
+```
+
+### ✅ 완료 조건
+- [ ] 다양한 전략이 정상 작동함
+- [ ] 백테스팅 결과가 정확함
+- [ ] 메모리 사용량이 최적화됨
+- [ ] 전체 시스템 성능이 안정적임
+
+---
+
+## 📊 전체 진행 상황 추적
+
+### ✅ 완료된 Phase
+- **Phase 1-7**: 기본 구조부터 매크로 실행까지 완료 ✅
+- **Phase 8**: 기술적 지표 계산 (진행 예정)
+- **Phase 9**: 자동매매 로직 (계획 단계)
+- **Phase 10**: UI 완성 (계획 단계)
+- **Phase 11**: 추가 기능 (계획 단계)
+
+### 🎯 현재 목표
+**Phase 8 구현**: 볼린저 밴드 계산 및 신호 생성 시스템
+
+### 📈 예상 완료 시점
+- **Phase 8**: 2일 (6시간)
+- **Phase 9**: 2일 (4시간)
+- **Phase 10**: 1일 (3시간)
+- **Phase 11**: 3일 (6시간)
+
+**총 예상 기간**: 약 8일 (19시간)
+
+---
+
+## 🔗 관련 문서
+
+- **[텔레그램 연동 가이드](TELEGRAM_INTEGRATION_GUIDE.md)**: 트레이딩뷰-텔레그램-익스텐션 연동 방법
+- **[PC 전원 관리 가이드](PC_POWER_MANAGEMENT_GUIDE.md)**: 24시간 자동매매를 위한 PC 설정 방법
+- **[개발 가이드라인](DEVELOPMENT_GUIDE.md)**: Git 커밋 규칙 및 개발 방법
+- **[사용자 가이드](USER_GUIDE.md)**: 익스텐션 사용 방법
+- **[설치 가이드](SETUP_GUIDE.md)**: 개발 환경 설정 방법
 
 ---
 
 ## ⚠️ 중요 원칙
+
 1. **한 번에 하나씩**: 각 Phase를 완전히 완료한 후 다음으로 진행
-2. **테스트 필수**: 각 단계마다 반드시 테스트
+2. **테스트 필수**: 각 단계마다 반드시 실제 테스트
 3. **일찍 실패**: 문제 발견 시 즉시 중단하고 해결
-4. **문서화**: 각 단계의 결과와 문제를 기록
+4. **문서화**: 각 단계의 결과와 문제를 상세히 기록
+5. **사용자 중심**: 복잡한 기능보다 사용하기 쉬운 인터페이스 우선
 
 ---
 
-## 🎯 현재 진행 단계
-**Phase 7 완료** - 하이브리드 매크로 시스템 구현 완료
-
-## 📝 최종 목표
-- 모든 Phase를 순차적으로 완료
-- 안정적이고 사용 가능한 자동매매 시스템
-- 확장 가능한 구조
-
----
-
-## 📋 완료된 Phase 요약
-- ✅ **Phase 1**: 기본 구조 설정 (사이드 패널 형식)
-- ✅ **Phase 2**: 사이드 패널 UI 구현 (거래소 선택 포함)
-- ✅ **Phase 3**: Chrome APIs 연동 (Storage, Tabs, Messages)
-- ✅ **Phase 4**: Content Script 기본 (거래소 감지 및 통신)
-- ✅ **Phase 5**: 가격 정보 추출 (Assets, Price, Amount 자동 계산)
-- ✅ **Phase 6**: 하이브리드 매크로 녹화 시스템 (스마트 요소 탐지)
-- ✅ **Phase 7**: 매크로 실행 시스템 (Long/Short 정확성 보장)
-
-## 🔄 다음 단계
-**Phase 8**: 기술적 지표 계산 (볼린저 밴드) 구현 준비
-
----
-
-## 🎉 주요 보완 사항 (Phase 6-7)
-
-### 🔧 **기술적 개선**
-- **하이브리드 요소 탐지**: 셀렉터 + 키워드 + 위치 기반 3중 백업 시스템
-- **스마트 셀렉터 생성**: Long/Short 버튼 구분을 위한 nth-child 활용
-- **성능 최적화**: Content Script 수동 주입, 이벤트 리스너 최적화
-- **텍스트 검증**: 매크로 실행 시 버튼 텍스트 일치 여부 확인
-
-### 🎨 **UI/UX 개선**
-- **시각적 피드백**: 매크로 저장 상태 표시 (has-data, has-macro 클래스)
-- **Manual Trading**: Long/Short 매크로 수동 테스트 버튼
-- **상태 표시**: 녹화 중/실행 중 상태 명확한 표시
-- **에러 처리**: 사용자 친화적 에러 메시지 및 가이드
-
-### 🛡️ **안정성 강화**
-- **중복 방지**: 같은 CSS 클래스 버튼 구분 로직
-- **백그라운드 최적화**: 자동 실행 방지로 브라우저 성능 개선
-- **디버깅 강화**: 상세한 콘솔 로그 및 실행 추적
-- **에러 복구**: 셀렉터 실패 시 스마트 탐지로 자동 복구
-
+**💡 성공 팁**: 각 Phase는 독립적으로 완료 가능하도록 설계되었습니다. 문제가 발생하면 이전 단계로 돌아가서 기반을 다시 확인하세요. 안정성이 확보된 후에 다음 단계로 진행하는 것이 전체 개발 시간을 단축시킵니다!
