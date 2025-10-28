@@ -8,6 +8,18 @@
 </head>
 <body>
   <div class="container">
+    <!-- Exchange Selection -->
+    <div class="exchange-selector">
+      <select id="exchangeSelect" class="exchange-dropdown">
+        <option value="">Select Exchange</option>
+        <option value="binance">Binance</option>
+        <option value="gateio">Gate.io</option>
+        <option value="upbit">Upbit</option>
+        <option value="coinbase">Coinbase</option>
+      </select>
+      <button id="goToExchangeBtn" class="btn btn-go" disabled>Go</button>
+    </div>
+
     <!-- Main Control Buttons -->
     <div class="button-section">
       <button id="startBtn" class="btn btn-start">Start Trading</button>
@@ -46,24 +58,7 @@
     <!-- Settings Area -->
     <div class="exchange-section">
       <h3>Settings</h3>
-      <div class="exchange-selector">
-        <select id="exchangeSelect" class="exchange-dropdown">
-          <option value="">Select Exchange</option>
-          <option value="binance">Binance</option>
-          <option value="gateio">Gate.io</option>
-          <option value="upbit">Upbit</option>
-          <option value="coinbase">Coinbase</option>
-        </select>
-        <button id="goToExchangeBtn" class="btn btn-go" disabled>Go</button>
-      </div>
       
-      <div class="setting-item-row">
-        <div class="setting-label">Trading Mode</div>
-        <select id="tradingMode" class="setting-select">
-          <option value="oneway">One-Way Mode</option>
-          <option value="hedge">Hedge Mode</option>
-        </select>
-      </div>
       
       <div class="setting-item-row">
         <div class="setting-label">Leverage</div>
@@ -80,6 +75,19 @@
         <input type="number" id="stoplossValue" min="0" max="100" value="2" step="0.1" class="setting-input" />
       </div>
       
+      <!-- Take Profit Settings -->
+      <div class="tp-settings">
+        <h4>Take Profit Settings</h4>
+        <div class="setting-item-row">
+          <div class="setting-label">TP 1 (%)</div>
+          <input type="number" id="tp1Value" min="0" max="1000" value="3" step="0.1" class="setting-input" />
+        </div>
+        <div class="setting-item-row">
+          <div class="setting-label">TP 2 (%)</div>
+          <input type="number" id="tp2Value" min="0" max="1000" value="6" step="0.1" class="setting-input" />
+        </div>
+      </div>
+      
       <!-- Data Extraction Buttons -->
       <div class="extraction-controls">
         <button id="extractAssetsBtn" class="btn btn-selector">Assets Extraction</button>
@@ -90,6 +98,18 @@
       <div class="macro-controls">
         <button id="longRecordBtn" class="btn btn-macro btn-long">Long Record</button>
         <button id="shortRecordBtn" class="btn btn-macro btn-short">Short Record</button>
+      </div>
+      
+      <!-- Stop Loss & Close Controls -->
+      <div class="sl-close-controls">
+        <button id="slRecordBtn" class="btn btn-sl-close btn-sl">SL Record</button>
+        <button id="closeRecordBtn" class="btn btn-sl-close btn-close">Close Record</button>
+      </div>
+      
+      <!-- Take Profit Controls -->
+      <div class="tp-controls">
+        <button id="tp1RecordBtn" class="btn btn-tp btn-tp1">TP1 Record</button>
+        <button id="tp2RecordBtn" class="btn btn-tp btn-tp2">TP2 Record</button>
       </div>
       
       <!-- Telegram Integration -->

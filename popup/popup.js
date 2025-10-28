@@ -6,9 +6,15 @@ const statusText = document.querySelector('.status-text');
 const exchangeSelect = document.getElementById('exchangeSelect');
 const goToExchangeBtn = document.getElementById('goToExchangeBtn');
 const leverageValueInput = document.getElementById('leverageValue');
-const tradingModeSelect = document.getElementById('tradingMode');
+// const tradingModeSelect = document.getElementById('tradingMode'); // 제거됨
 const positionValueInput = document.getElementById('positionValue');
 const stoplossValueInput = document.getElementById('stoplossValue');
+const tp1ValueInput = document.getElementById('tp1Value');
+const tp2ValueInput = document.getElementById('tp2Value');
+const slRecordBtn = document.getElementById('slRecordBtn');
+const closeRecordBtn = document.getElementById('closeRecordBtn');
+const tp1RecordBtn = document.getElementById('tp1RecordBtn');
+const tp2RecordBtn = document.getElementById('tp2RecordBtn');
 const extractAssetsBtn = document.getElementById('extractAssetsBtn');
 const extractPriceBtn = document.getElementById('extractPriceBtn');
 const longRecordBtn = document.getElementById('longRecordBtn');
@@ -124,10 +130,7 @@ leverageValueInput.addEventListener('input', () => {
 });
 
 // Trading Mode 변경 시 버튼 상태 업데이트
-tradingModeSelect.addEventListener('change', () => {
-  updateTradingModeButtons();
-  saveSettings();
-});
+// Trading mode 제거됨
 
 // Position 입력 변경 시 저장 및 Amount 재계산
 positionValueInput.addEventListener('change', () => {
@@ -393,7 +396,7 @@ async function resetAllData() {
     leverageValueInput.value = 1;
     positionValueInput.value = 100;
     stoplossValueInput.value = 2;
-    tradingModeSelect.value = 'oneway';
+    // tradingModeSelect.value = 'oneway'; // 제거됨
     
     // Trading Status 초기화
     currentAssets.textContent = '-';
@@ -1085,7 +1088,7 @@ async function saveSettings() {
   const leverage = parseInt(leverageValueInput.value) || 1;
   const position = parseFloat(positionValueInput.value) || 100;
   const stoploss = parseFloat(stoplossValueInput.value) || 2;
-  const tradingMode = tradingModeSelect.value;
+  // const tradingMode = tradingModeSelect.value; // 제거됨
   
   await chrome.storage.local.set({
     isTrading: isTrading,
@@ -1146,9 +1149,9 @@ async function loadSettings() {
     // 기본값 2% 설정
     stoplossValueInput.value = 2;
   }
-  if (result.tradingMode) {
-    tradingModeSelect.value = result.tradingMode;
-  }
+  // if (result.tradingMode) {
+  //   tradingModeSelect.value = result.tradingMode;
+  // } // 제거됨
   
   // 모든 셀렉터 로드
   if (result.balanceSelector) {
