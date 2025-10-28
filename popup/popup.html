@@ -99,6 +99,41 @@
       </div>
     </div>
 
+    <!-- Telegram Auto Trading Area -->
+    <div class="telegram-section">
+      <h3>📱 Telegram Auto Trading</h3>
+      
+      <div class="telegram-settings">
+        <div class="input-group">
+          <label for="botToken">Bot Token:</label>
+          <input type="password" id="botToken" class="telegram-input" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+        </div>
+        
+        <div class="input-group">
+          <label for="chatId">Chat ID:</label>
+          <input type="text" id="chatId" class="telegram-input" placeholder="987654321">
+        </div>
+        
+        <div class="input-group">
+          <label for="userSymbol">Trading Symbol:</label>
+          <input type="text" id="userSymbol" class="telegram-input" placeholder="BTC" maxlength="10">
+          <small class="input-hint">Example: BTC, ETH, SOL (only this symbol signals will be processed)</small>
+        </div>
+        
+        <div class="telegram-controls">
+          <button id="testTelegramConnection" class="btn btn-test">Test Connection</button>
+          <button id="startTelegramTrading" class="btn btn-telegram-start">Start Auto Trading</button>
+          <button id="stopTelegramTrading" class="btn btn-telegram-stop" disabled>Stop Auto Trading</button>
+        </div>
+        
+        <div id="telegramStatusMessage" class="status-message"></div>
+        <div class="telegram-status-info">
+          <span class="status-label">Status: </span>
+          <span id="telegramStatus" class="status-value">Standby</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Data Management Area -->
     <div class="data-management-section">
       <h3>Data Management</h3>
@@ -112,6 +147,7 @@
 
   </div>
 
+  <script src="../utils/telegram.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

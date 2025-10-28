@@ -1487,3 +1487,261 @@ chrome.runtime.onSuspend?.addListener(() => {
 });
 
 // 설정 변경 시 자동 저장
+
+// ============================================
+// Telegram Auto Trading 기능
+// ============================================
+
+// 텔레그램 관련 DOM 요소
+const botTokenInput = document.getElementById('botToken');
+const chatIdInput = document.getElementById('chatId');
+const userSymbolInput = document.getElementById('userSymbol');
+const testTelegramConnectionBtn = document.getElementById('testTelegramConnection');
+const startTelegramTradingBtn = document.getElementById('startTelegramTrading');
+const stopTelegramTradingBtn = document.getElementById('stopTelegramTrading');
+const telegramStatusMessage = document.getElementById('telegramStatusMessage');
+const telegramStatus = document.getElementById('telegramStatus');
+
+// 텔레그램 봇 인스턴스
+let telegramBot = null;
+let telegramPollingInterval = null;
+let isTelegramTrading = false;
+
+// 텔레그램 설정 로드
+async function loadTelegramSettings() {
+  try {
+    const result = await chrome.storage.local.get(['telegramSettings']);
+    if (result.telegramSettings) {
+      const settings = result.telegramSettings;
+      botTokenInput.value = settings.botToken || '';
+      chatIdInput.value = settings.chatId || '';
+      userSymbolInput.value = settings.userSymbol || '';
+      
+      console.log('텔레그램 설정 로드됨:', {
+        botToken: settings.botToken ? 'Set' : 'Empty',
+        chatId: settings.chatId || 'Empty',
+        userSymbol: settings.userSymbol || 'Empty'
+      });
+    }
+  } catch (error) {
+    console.error('텔레그램 설정 로드 실패:', error);
+  }
+}
+
+// 텔레그램 설정 저장
+async function saveTelegramSettings() {
+  try {
+    const settings = {
+      botToken: botTokenInput.value.trim(),
+      chatId: chatIdInput.value.trim(),
+      userSymbol: userSymbolInput.value.trim().toUpperCase()
+    };
+    
+    await chrome.storage.local.set({ telegramSettings: settings });
+    console.log('텔레그램 설정 저장됨:', {
+      botToken: settings.botToken ? 'Set' : 'Empty',
+      chatId: settings.chatId || 'Empty',
+      userSymbol: settings.userSymbol || 'Empty'
+    });
+  } catch (error) {
+    console.error('텔레그램 설정 저장 실패:', error);
+  }
+}
+
+// 상태 메시지 표시
+function showTelegramStatus(message, type = 'info') {
+  telegramStatusMessage.textContent = message;
+  telegramStatusMessage.className = `status-message ${type}`;
+  
+  console.log(`Telegram Status [${type}]:`, message);
+  
+  // 3초 후 자동 숨김 (에러 메시지는 5초)
+  const hideDelay = type === 'error' ? 5000 : 3000;
+  setTimeout(() => {
+    telegramStatusMessage.className = 'status-message';
+  }, hideDelay);
+}
+
+// 텔레그램 연결 테스트
+async function testTelegramConnection() {
+  try {
+    const botToken = botTokenInput.value.trim();
+    const chatId = chatIdInput.value.trim();
+    const userSymbol = userSymbolInput.value.trim();
+    
+    if (!botToken || !chatId) {
+      showTelegramStatus('Bot Token and Chat ID are required', 'error');
+      return;
+    }
+    
+    showTelegramStatus('Testing connection...', 'info');
+    testTelegramConnectionBtn.disabled = true;
+    
+    // 텔레그램 봇 인스턴스 생성
+    telegramBot = new TelegramBot(botToken, chatId);
+    
+    // 연결 테스트
+    const result = await telegramBot.testConnection();
+    
+    if (result.success) {
+      const symbolInfo = userSymbol ? ` (${userSymbol} only)` : '';
+      showTelegramStatus(`Connected: @${result.botInfo.username}${symbolInfo}`, 'success');
+      
+      // 설정 저장
+      await saveTelegramSettings();
+      
+      // UI 업데이트
+      telegramStatus.textContent = 'Connected';
+      startTelegramTradingBtn.disabled = false;
+      
+      console.log('텔레그램 연결 성공:', result.botInfo);
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    console.error('텔레그램 연결 테스트 실패:', error);
+    showTelegramStatus(`Connection failed: ${error.message}`, 'error');
+    telegramStatus.textContent = 'Connection Failed';
+    startTelegramTradingBtn.disabled = true;
+  } finally {
+    testTelegramConnectionBtn.disabled = false;
+  }
+}
+
+// 심볼 업데이트
+function updateTelegramSymbol() {
+  const userSymbol = userSymbolInput.value.trim().toUpperCase();
+  
+  if (telegramBot) {
+    // 여기서는 봇 인스턴스에 심볼 설정 기능이 없으므로 설정만 저장
+    saveTelegramSettings();
+    
+    const symbolInfo = userSymbol ? userSymbol : 'All symbols';
+    showTelegramStatus(`Symbol updated: ${symbolInfo}`, 'info');
+    
+    console.log('심볼 업데이트됨:', userSymbol);
+  }
+}
+
+// 텔레그램 자동매매 시작
+async function startTelegramTrading() {
+  try {
+    if (!telegramBot) {
+      await testTelegramConnection();
+      if (!telegramBot) return;
+    }
+    
+    showTelegramStatus('Starting Telegram auto trading...', 'info');
+    startTelegramTradingBtn.disabled = true;
+    
+    // 폴링 시작 (3초 간격)
+    telegramPollingInterval = setInterval(async () => {
+      await pollTelegramMessages();
+    }, 3000);
+    
+    isTelegramTrading = true;
+    
+    // UI 업데이트
+    telegramStatus.textContent = 'Auto Trading Active';
+    stopTelegramTradingBtn.disabled = false;
+    
+    // 시작 알림 전송
+    const userSymbol = userSymbolInput.value.trim();
+    const symbolInfo = userSymbol ? ` (${userSymbol} only)` : '';
+    await telegramBot.sendMessage(`🤖 Auto trading started${symbolInfo}`);
+    
+    showTelegramStatus('Telegram auto trading started', 'success');
+    console.log('텔레그램 자동매매 시작됨');
+    
+  } catch (error) {
+    console.error('텔레그램 자동매매 시작 실패:', error);
+    showTelegramStatus(`Failed to start: ${error.message}`, 'error');
+    startTelegramTradingBtn.disabled = false;
+  }
+}
+
+// 텔레그램 자동매매 중단
+async function stopTelegramTrading() {
+  try {
+    if (telegramPollingInterval) {
+      clearInterval(telegramPollingInterval);
+      telegramPollingInterval = null;
+    }
+    
+    isTelegramTrading = false;
+    
+    // UI 업데이트
+    telegramStatus.textContent = 'Stopped';
+    startTelegramTradingBtn.disabled = false;
+    stopTelegramTradingBtn.disabled = true;
+    
+    // 중단 알림 전송
+    if (telegramBot) {
+      await telegramBot.sendMessage('⏸️ Auto trading stopped');
+    }
+    
+    showTelegramStatus('Telegram auto trading stopped', 'info');
+    console.log('텔레그램 자동매매 중단됨');
+    
+  } catch (error) {
+    console.error('텔레그램 자동매매 중단 실패:', error);
+    showTelegramStatus(`Failed to stop: ${error.message}`, 'error');
+  }
+}
+
+// 메시지 폴링 (임시 구현 - Phase 8-2에서 신호 파싱 추가 예정)
+async function pollTelegramMessages() {
+  try {
+    if (!telegramBot || !isTelegramTrading) return;
+    
+    const messages = await telegramBot.getUpdates();
+    
+    if (messages.length > 0) {
+      console.log(`${messages.length}개의 새 메시지 수신:`, messages);
+      
+      for (const message of messages) {
+        console.log('메시지 처리:', message.text);
+        
+        // Phase 8-2에서 신호 파싱 로직 추가 예정
+        // 현재는 로그만 출력
+        if (message.text) {
+          const userSymbol = userSymbolInput.value.trim().toUpperCase();
+          const messageText = message.text.toUpperCase();
+          
+          // 간단한 테스트용 신호 감지
+          if (messageText.includes('TEST')) {
+            await telegramBot.sendMessage(`✅ Test message received: ${message.text}`);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('메시지 폴링 오류:', error);
+  }
+}
+
+// 텔레그램 이벤트 리스너 등록
+if (testTelegramConnectionBtn) {
+  testTelegramConnectionBtn.addEventListener('click', testTelegramConnection);
+}
+if (startTelegramTradingBtn) {
+  startTelegramTradingBtn.addEventListener('click', startTelegramTrading);
+}
+if (stopTelegramTradingBtn) {
+  stopTelegramTradingBtn.addEventListener('click', stopTelegramTrading);
+}
+if (userSymbolInput) {
+  userSymbolInput.addEventListener('change', updateTelegramSymbol);
+}
+
+// 기존 DOMContentLoaded 이벤트에 텔레그램 설정 로드 추가
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Popup loaded with Telegram support');
+  loadSettings();
+  loadTelegramSettings(); // 텔레그램 설정 로드 추가
+  updateUI();
+  updateDataDisplay();
+  
+  // 주기적으로 데이터 업데이트 (1초마다)
+  setInterval(updateDataDisplay, 1000);
+});
