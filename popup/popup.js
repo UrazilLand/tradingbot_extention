@@ -1642,13 +1642,13 @@ async function startTelegramTrading() {
     isTelegramTrading = true;
     
     // UI 업데이트
-    telegramStatus.textContent = 'Auto Trading Active';
+    telegramStatus.textContent = 'Telegram Trading Active';
     stopTelegramTradingBtn.disabled = false;
     
     // 시작 알림 전송
     const userSymbol = userSymbolInput.value.trim();
     const symbolInfo = userSymbol ? ` (${userSymbol} only)` : '';
-    await telegramBot.sendMessage(`🤖 Auto trading started${symbolInfo}`);
+    await telegramBot.sendMessage(`🤖 Telegram auto trading started${symbolInfo}`);
     
     showTelegramStatus('Telegram auto trading started', 'success');
     console.log('텔레그램 자동매매 시작됨');
@@ -1677,7 +1677,7 @@ async function stopTelegramTrading() {
     
     // 중단 알림 전송
     if (telegramBot) {
-      await telegramBot.sendMessage('⏸️ Auto trading stopped');
+      await telegramBot.sendMessage('⏸️ Telegram auto trading stopped');
     }
     
     showTelegramStatus('Telegram auto trading stopped', 'info');

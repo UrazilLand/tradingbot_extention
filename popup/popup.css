@@ -595,6 +595,15 @@ body {
   font-style: italic;
 }
 
+/* Section Description */
+.section-description {
+  font-size: 11px;
+  color: #6c757d;
+  margin: 5px 0 15px 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 /* Telegram Section */
 .telegram-section {
   margin-top: 20px;
