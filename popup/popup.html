@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Trading Bot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Status Display Area -->
+    <div class="status-section">
+      <div class="status-header">
+        <h2>Trading Status</h2>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Standby</span>
+        </div>
+      </div>
+      <div class="assets-display">
+        <div class="assets-label">Assets:</div>
+        <div id="currentAssets" class="assets-value">-</div>
+      </div>
+      <div class="assets-display">
+        <div class="assets-label">Price:</div>
+        <div id="currentPrice" class="assets-value">-</div>
+      </div>
+      <div class="assets-display">
+        <div class="assets-label">Amount:</div>
+        <div id="currentAmount" class="assets-value">-</div>
+      </div>
+    </div>
+
+    <!-- Button Area -->
+    <div class="button-section">
+      <button id="startBtn" class="btn btn-start">Start Trading</button>
+      <button id="stopBtn" class="btn btn-stop" disabled>Stop Trading</button>
+    </div>
+
+    <!-- Manual Trading Area -->
+    <div class="manual-trading-section">
+      <h3>Manual Trading</h3>
+      <div class="manual-controls">
+        <button id="manualLongBtn" class="btn btn-manual btn-long">Manual Long</button>
+        <button id="manualShortBtn" class="btn btn-manual btn-short">Manual Short</button>
+      </div>
+    </div>
+
+    <!-- Settings Area -->
+    <div class="exchange-section">
+      <h3>Settings</h3>
+      <div class="exchange-selector">
+        <select id="exchangeSelect" class="exchange-dropdown">
+          <option value="">Select Exchange</option>
+          <option value="binance">Binance</option>
+          <option value="gateio">Gate.io</option>
+          <option value="upbit">Upbit</option>
+          <option value="coinbase">Coinbase</option>
+        </select>
+        <button id="goToExchangeBtn" class="btn btn-go" disabled>Go</button>
+      </div>
+      
+      <div class="setting-item-row">
+        <div class="setting-label">Trading Mode</div>
+        <select id="tradingMode" class="setting-select">
+          <option value="oneway">One-Way Mode</option>
+          <option value="hedge">Hedge Mode</option>
+        </select>
+      </div>
+      
+      <div class="setting-item-row">
+        <div class="setting-label">Leverage</div>
+        <input type="number" id="leverageValue" min="1" max="125" value="1" class="setting-input" />
+      </div>
+      
+      <div class="setting-item-row">
+        <div class="setting-label">Position (%)</div>
+          <input type="number" id="positionValue" min="0" max="100" value="100" step="0.1" class="setting-input" />
+      </div>
+      
+      <div class="setting-item-row">
+        <div class="setting-label">Stoploss (%)</div>
+        <input type="number" id="stoplossValue" min="0" max="100" value="2" step="0.1" class="setting-input" />
+      </div>
+      
+      <!-- Data Extraction Buttons -->
+      <div class="extraction-controls">
+        <button id="extractAssetsBtn" class="btn btn-selector">Assets Extraction</button>
+        <button id="extractPriceBtn" class="btn btn-selector btn-price">Price Extraction</button>
+      </div>
+    </div>
+
+    <!-- Macro Recording Area -->
+    <div class="macro-section">
+      <h3>Macro Recording</h3>
+      <div class="macro-controls">
+        <button id="longRecordBtn" class="btn btn-macro btn-long">Long Record</button>
+        <button id="shortRecordBtn" class="btn btn-macro btn-short">Short Record</button>
+      </div>
+    </div>
+
+    <!-- Data Management Area -->
+    <div class="data-management-section">
+      <h3>Data Management</h3>
+      <div class="data-controls">
+        <button id="resetAllBtn" class="btn btn-reset">Reset All Data</button>
+        <button id="exportDataBtn" class="btn btn-export">Export Data</button>
+        <button id="importDataBtn" class="btn btn-import">Import Data</button>
+      </div>
+      <input type="file" id="importFileInput" accept=".json" style="display: none;">
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

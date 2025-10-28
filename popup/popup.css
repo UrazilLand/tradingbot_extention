@@ -1,0 +1,598 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 300px;
+  background-color: #f5f5f5;
+  overflow-x: hidden; /* 가로 스크롤바 숨김 */
+}
+
+.container {
+  padding: 20px;
+  max-width: 100%;
+}
+
+/* Status Display Area */
+.status-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Status Header Layout */
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.status-section h2 {
+  font-size: 18px;
+  margin: 0;
+  color: #333;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #ccc;
+  display: inline-block;
+}
+
+.status-dot.active {
+  background-color: #4caf50;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+}
+
+.assets-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.assets-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
+.assets-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2196f3;
+  text-align: right;
+}
+
+/* Button Area */
+.button-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-start {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-start:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btn-stop {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-stop:hover:not(:disabled) {
+  background-color: #da190b;
+}
+
+/* Exchange Selection Area */
+.exchange-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.exchange-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.exchange-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+/* Setting Item Row Layout */
+.setting-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 15px;
+}
+
+.setting-item-row:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  min-width: 100px;
+  text-align: left;
+}
+
+.setting-input {
+  flex: 1;
+  max-width: 150px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  background-color: white;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.setting-select {
+  flex: 1;
+  max-width: 150px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.exchange-dropdown {
+  flex: 3;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.exchange-dropdown:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.btn-go {
+  background-color: #2196f3;
+  color: white;
+  flex: 1;
+  min-width: 50px;
+  max-width: 70px;
+}
+
+.btn-go:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+/* Selector Extraction Area */
+.selector-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.selector-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.selector-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-selector {
+  background-color: #ff9800;
+  color: white;
+  flex: 1;
+}
+
+.btn-selector:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
+.btn-price {
+  background-color: #2196f3;
+}
+
+.btn-price:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+/* Data Extraction Controls */
+.extraction-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.extraction-controls .btn {
+  flex: 1;
+  font-size: 13px;
+  padding: 10px 8px;
+  transition: all 0.3s ease;
+  /* 기본 상태: 테두리만 */
+  background-color: transparent;
+  border: 2px solid #2196f3;
+  color: #2196f3;
+}
+
+.extraction-controls .btn:hover:not(:disabled) {
+  background-color: #f5f5f5;
+}
+
+/* 데이터가 있을 때 채워진 스타일 */
+.extraction-controls .btn.has-data {
+  background-color: #2196f3;
+  color: white;
+  border: 2px solid #2196f3;
+}
+
+.extraction-controls .btn.has-data:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+/* Default state: outline only */
+.btn-selector {
+  background-color: transparent !important;
+  border: 2px solid #ddd !important;
+  color: #666 !important;
+}
+
+.btn-selector:hover:not(:disabled) {
+  border-color: #999 !important;
+  color: #333 !important;
+  background-color: #f5f5f5 !important;
+}
+
+/* Extracted state: filled with color */
+.btn-selector.extracted {
+  border: 2px solid transparent !important;
+  background-color: #2196f3 !important;
+  color: white !important;
+}
+
+.btn-selector.extracted.btn-price {
+  background-color: #2196f3 !important;
+  color: white !important;
+}
+
+/* Manual Trading Area */
+.manual-trading-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.manual-trading-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.manual-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-manual {
+  flex: 1;
+  font-size: 14px;
+  padding: 12px 10px;
+  transition: all 0.3s ease;
+}
+
+.btn-manual.btn-long {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-manual.btn-long:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+.btn-manual.btn-short {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-manual.btn-short:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+/* Macro Recording Area */
+.macro-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.macro-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.macro-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-macro {
+  flex: 1;
+  font-size: 14px;
+  padding: 12px 10px;
+  transition: all 0.3s ease;
+  /* 기본 상태: 테두리만 */
+  background-color: transparent;
+  color: #666;
+}
+
+.btn-macro.btn-long {
+  border: 2px solid #4caf50;
+  color: #4caf50;
+}
+
+.btn-macro.btn-long:hover:not(:disabled) {
+  background-color: #f5f5f5;
+}
+
+.btn-macro.btn-short {
+  border: 2px solid #f44336;
+  color: #f44336;
+}
+
+.btn-macro.btn-short:hover:not(:disabled) {
+  background-color: #f5f5f5;
+}
+
+/* 매크로가 저장되었을 때 채워진 스타일 */
+.btn-macro.has-macro.btn-long {
+  background-color: #4caf50;
+  color: white;
+  border: 2px solid #4caf50;
+}
+
+.btn-macro.has-macro.btn-long:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+.btn-macro.has-macro.btn-short {
+  background-color: #f44336;
+  color: white;
+  border: 2px solid #f44336;
+}
+
+.btn-macro.has-macro.btn-short:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+/* Data Management Area */
+.data-management-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.data-management-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.data-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-reset {
+  flex: 1;
+  min-width: 80px;
+  font-size: 12px;
+  padding: 8px 6px;
+  background-color: #ff5722;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-reset:hover:not(:disabled) {
+  background-color: #e64a19;
+}
+
+.btn-export {
+  flex: 1;
+  min-width: 80px;
+  font-size: 12px;
+  padding: 8px 6px;
+  background-color: #2196f3;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-export:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+.btn-import {
+  flex: 1;
+  min-width: 80px;
+  font-size: 12px;
+  padding: 8px 6px;
+  background-color: #4caf50;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-import:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+/* Extracted Data Display Area */
+.data-display-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.data-card {
+  flex: 1;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e9ecef;
+}
+
+.data-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.data-value {
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+}
+
+.btn-stop-selector {
+  background-color: #9e9e9e;
+  color: white;
+  flex: 1;
+}
+
+.btn-stop-selector:hover:not(:disabled) {
+  background-color: #757575;
+}
+
+/* Settings Area */
+.settings-section {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.settings-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-item label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.setting-item input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.setting-item input:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.interval-help {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Responsive Layout */
