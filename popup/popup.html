@@ -31,21 +31,18 @@
       </div>
     </div>
 
-    <!-- Manual Data Extraction -->
+    <!-- Button Area -->
     <div class="button-section">
-      <h3>📊 Data Extraction</h3>
-      <p class="section-description">Start periodic price/assets extraction from the exchange page</p>
-      <button id="startBtn" class="btn btn-start">Start Data Extraction</button>
-      <button id="stopBtn" class="btn btn-stop" disabled>Stop Data Extraction</button>
+      <button id="startBtn" class="btn btn-start">Start Trading</button>
+      <button id="stopBtn" class="btn btn-stop" disabled>Stop Trading</button>
     </div>
 
     <!-- Manual Trading Area -->
     <div class="manual-trading-section">
-      <h3>🎮 Manual Trading</h3>
-      <p class="section-description">Execute recorded macros manually (one-time execution)</p>
+      <h3>Manual Trading</h3>
       <div class="manual-controls">
-        <button id="manualLongBtn" class="btn btn-manual btn-long">Execute Long Macro</button>
-        <button id="manualShortBtn" class="btn btn-manual btn-short">Execute Short Macro</button>
+        <button id="manualLongBtn" class="btn btn-manual btn-long">Manual Long</button>
+        <button id="manualShortBtn" class="btn btn-manual btn-short">Manual Short</button>
       </div>
     </div>
 
@@ -86,6 +83,32 @@
         <input type="number" id="stoplossValue" min="0" max="100" value="2" step="0.1" class="setting-input" />
       </div>
       
+      <!-- Telegram Integration -->
+      <div class="telegram-integration">
+        <h4>Telegram Integration</h4>
+        
+        <div class="input-group">
+          <label for="botToken">Bot Token:</label>
+          <input type="password" id="botToken" class="telegram-input" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+        </div>
+        
+        <div class="input-group">
+          <label for="chatId">Chat ID:</label>
+          <input type="text" id="chatId" class="telegram-input" placeholder="987654321">
+        </div>
+        
+        <div class="input-group">
+          <label for="userSymbol">Trading Symbol:</label>
+          <input type="text" id="userSymbol" class="telegram-input" placeholder="BTC" maxlength="10">
+        </div>
+        
+        <div class="telegram-controls">
+          <button id="testTelegramConnection" class="btn btn-test">Test Connection</button>
+        </div>
+        
+        <div id="telegramStatusMessage" class="status-message"></div>
+      </div>
+      
       <!-- Data Extraction Buttons -->
       <div class="extraction-controls">
         <button id="extractAssetsBtn" class="btn btn-selector">Assets Extraction</button>
@@ -102,41 +125,6 @@
       </div>
     </div>
 
-    <!-- Telegram Auto Trading Area -->
-    <div class="telegram-section">
-      <h3>📱 Telegram Auto Trading</h3>
-      <p class="section-description">Receive signals from Telegram and execute macros automatically</p>
-      
-      <div class="telegram-settings">
-        <div class="input-group">
-          <label for="botToken">Bot Token:</label>
-          <input type="password" id="botToken" class="telegram-input" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
-        </div>
-        
-        <div class="input-group">
-          <label for="chatId">Chat ID:</label>
-          <input type="text" id="chatId" class="telegram-input" placeholder="987654321">
-        </div>
-        
-        <div class="input-group">
-          <label for="userSymbol">Trading Symbol:</label>
-          <input type="text" id="userSymbol" class="telegram-input" placeholder="BTC" maxlength="10">
-          <small class="input-hint">Example: BTC, ETH, SOL (only this symbol signals will be processed)</small>
-        </div>
-        
-        <div class="telegram-controls">
-          <button id="testTelegramConnection" class="btn btn-test">Test Connection</button>
-          <button id="startTelegramTrading" class="btn btn-telegram-start">Start Telegram Trading</button>
-          <button id="stopTelegramTrading" class="btn btn-telegram-stop" disabled>Stop Telegram Trading</button>
-        </div>
-        
-        <div id="telegramStatusMessage" class="status-message"></div>
-        <div class="telegram-status-info">
-          <span class="status-label">Status: </span>
-          <span id="telegramStatus" class="status-value">Standby</span>
-        </div>
-      </div>
-    </div>
 
     <!-- Data Management Area -->
     <div class="data-management-section">

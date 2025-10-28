@@ -1223,8 +1223,11 @@ startBtn.addEventListener('click', async () => {
   console.log('거래 시작 - 주기적 추출 시작 시도');
   startPeriodicExtraction();
   
+  // 텔레그램 폴링 시작 (연결되어 있는 경우)
+  await startTelegramPolling();
+  
   // 매크로 기반 자동 매매 준비
-  console.log('매크로 기반 자동 매매 준비 완료');
+  console.log('매크로 기반 자동 매매 준비 완료 (텔레그램 폴링 포함)');
   initializeAutoTrading();
   
   // Background에 메시지 전송
@@ -1248,6 +1251,9 @@ stopBtn.addEventListener('click', async () => {
   
   // 주기적 자본금 추출 중단
   stopPeriodicExtraction();
+  
+  // 텔레그램 폴링 중단
+  await stopTelegramPolling();
   
   // Background에 메시지 전송
   await sendMessageToBackground({ action: 'stopTrading', status: 'inactive' });
@@ -1497,10 +1503,7 @@ const botTokenInput = document.getElementById('botToken');
 const chatIdInput = document.getElementById('chatId');
 const userSymbolInput = document.getElementById('userSymbol');
 const testTelegramConnectionBtn = document.getElementById('testTelegramConnection');
-const startTelegramTradingBtn = document.getElementById('startTelegramTrading');
-const stopTelegramTradingBtn = document.getElementById('stopTelegramTrading');
 const telegramStatusMessage = document.getElementById('telegramStatusMessage');
-const telegramStatus = document.getElementById('telegramStatus');
 
 // 텔레그램 봇 인스턴스
 let telegramBot = null;
@@ -1590,9 +1593,8 @@ async function testTelegramConnection() {
       // 설정 저장
       await saveTelegramSettings();
       
-      // UI 업데이트
-      telegramStatus.textContent = 'Connected';
-      startTelegramTradingBtn.disabled = false;
+      // UI 업데이트 - 연결 성공 시 Start Trading 버튼 활성화
+      // (텔레그램 연결이 되어야 자동매매 가능)
       
       console.log('텔레그램 연결 성공:', result.botInfo);
     } else {
@@ -1601,8 +1603,6 @@ async function testTelegramConnection() {
   } catch (error) {
     console.error('텔레그램 연결 테스트 실패:', error);
     showTelegramStatus(`Connection failed: ${error.message}`, 'error');
-    telegramStatus.textContent = 'Connection Failed';
-    startTelegramTradingBtn.disabled = true;
   } finally {
     testTelegramConnectionBtn.disabled = false;
   }
@@ -1623,16 +1623,20 @@ function updateTelegramSymbol() {
   }
 }
 
-// 텔레그램 자동매매 시작
-async function startTelegramTrading() {
+// 텔레그램 폴링 시작 (상단 Start Trading 버튼에서 호출)
+async function startTelegramPolling() {
   try {
     if (!telegramBot) {
-      await testTelegramConnection();
-      if (!telegramBot) return;
+      console.log('텔레그램 봇이 연결되지 않음 - 폴링 시작 불가');
+      return false;
     }
     
-    showTelegramStatus('Starting Telegram auto trading...', 'info');
-    startTelegramTradingBtn.disabled = true;
+    if (isTelegramTrading) {
+      console.log('이미 텔레그램 폴링 실행 중');
+      return true;
+    }
+    
+    console.log('텔레그램 폴링 시작...');
     
     // 폴링 시작 (3초 간격)
     telegramPollingInterval = setInterval(async () => {
@@ -1641,27 +1645,22 @@ async function startTelegramTrading() {
     
     isTelegramTrading = true;
     
-    // UI 업데이트
-    telegramStatus.textContent = 'Telegram Trading Active';
-    stopTelegramTradingBtn.disabled = false;
-    
     // 시작 알림 전송
     const userSymbol = userSymbolInput.value.trim();
     const symbolInfo = userSymbol ? ` (${userSymbol} only)` : '';
-    await telegramBot.sendMessage(`🤖 Telegram auto trading started${symbolInfo}`);
+    await telegramBot.sendMessage(`🤖 Auto trading started${symbolInfo}`);
     
-    showTelegramStatus('Telegram auto trading started', 'success');
-    console.log('텔레그램 자동매매 시작됨');
+    console.log('텔레그램 폴링 시작됨');
+    return true;
     
   } catch (error) {
-    console.error('텔레그램 자동매매 시작 실패:', error);
-    showTelegramStatus(`Failed to start: ${error.message}`, 'error');
-    startTelegramTradingBtn.disabled = false;
+    console.error('텔레그램 폴링 시작 실패:', error);
+    return false;
   }
 }
 
-// 텔레그램 자동매매 중단
-async function stopTelegramTrading() {
+// 텔레그램 폴링 중단 (상단 Stop Trading 버튼에서 호출)
+async function stopTelegramPolling() {
   try {
     if (telegramPollingInterval) {
       clearInterval(telegramPollingInterval);
@@ -1670,22 +1669,15 @@ async function stopTelegramTrading() {
     
     isTelegramTrading = false;
     
-    // UI 업데이트
-    telegramStatus.textContent = 'Stopped';
-    startTelegramTradingBtn.disabled = false;
-    stopTelegramTradingBtn.disabled = true;
-    
     // 중단 알림 전송
     if (telegramBot) {
-      await telegramBot.sendMessage('⏸️ Telegram auto trading stopped');
+      await telegramBot.sendMessage('⏸️ Auto trading stopped');
     }
     
-    showTelegramStatus('Telegram auto trading stopped', 'info');
-    console.log('텔레그램 자동매매 중단됨');
+    console.log('텔레그램 폴링 중단됨');
     
   } catch (error) {
-    console.error('텔레그램 자동매매 중단 실패:', error);
-    showTelegramStatus(`Failed to stop: ${error.message}`, 'error');
+    console.error('텔레그램 폴링 중단 실패:', error);
   }
 }
 
@@ -1723,12 +1715,6 @@ async function pollTelegramMessages() {
 // 텔레그램 이벤트 리스너 등록
 if (testTelegramConnectionBtn) {
   testTelegramConnectionBtn.addEventListener('click', testTelegramConnection);
-}
-if (startTelegramTradingBtn) {
-  startTelegramTradingBtn.addEventListener('click', startTelegramTrading);
-}
-if (stopTelegramTradingBtn) {
-  stopTelegramTradingBtn.addEventListener('click', stopTelegramTrading);
 }
 if (userSymbolInput) {
   userSymbolInput.addEventListener('change', updateTelegramSymbol);

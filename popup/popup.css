@@ -595,43 +595,27 @@ body {
   font-style: italic;
 }
 
-/* Section Description */
-.section-description {
-  font-size: 11px;
-  color: #6c757d;
-  margin: 5px 0 15px 0;
-  font-style: italic;
-  line-height: 1.4;
+/* Telegram Integration */
+.telegram-integration {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
 }
 
-/* Telegram Section */
-.telegram-section {
-  margin-top: 20px;
-  padding: 15px;
-  background: #e8f4fd;
-  border-radius: 8px;
-  border: 1px solid #b3d9ff;
-}
-
-.telegram-section h3 {
-  margin: 0 0 15px 0;
-  font-size: 16px;
-  color: #0056b3;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.telegram-settings {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.telegram-integration h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #495057;
+  font-weight: 600;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 10px;
 }
 
 .input-group label {
@@ -641,7 +625,7 @@ body {
 }
 
 .telegram-input {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 12px;
@@ -655,17 +639,8 @@ body {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-.input-hint {
-  font-size: 10px;
-  color: #6c757d;
-  font-style: italic;
-}
-
 .telegram-controls {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .btn-test {
@@ -673,32 +648,14 @@ body {
   color: white;
   font-size: 11px;
   padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
 }
 
 .btn-test:hover {
   background: #5a6268;
-}
-
-.btn-telegram-start {
-  background: #28a745;
-  color: white;
-  font-size: 11px;
-  padding: 6px 12px;
-}
-
-.btn-telegram-start:hover {
-  background: #218838;
-}
-
-.btn-telegram-stop {
-  background: #dc3545;
-  color: white;
-  font-size: 11px;
-  padding: 6px 12px;
-}
-
-.btn-telegram-stop:hover {
-  background: #c82333;
 }
 
 .status-message {
@@ -728,24 +685,6 @@ body {
   color: #721c24;
   border: 1px solid #f5c6cb;
   display: block;
-}
-
-.telegram-status-info {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 11px;
-}
-
-.status-label {
-  color: #6c757d;
-  font-weight: 600;
-}
-
-.status-value {
-  color: #495057;
-  font-weight: 500;
 }
 
 /* Responsive Layout */
