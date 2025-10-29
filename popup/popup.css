@@ -21,7 +21,7 @@ body {
   background-color: white;
   padding: 15px;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -95,7 +95,7 @@ body {
 .exchange-selector {
   display: flex;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   align-items: center;
 }
 
@@ -103,7 +103,7 @@ body {
 .button-section {
   display: flex;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .btn {
@@ -150,13 +150,13 @@ body {
   background-color: white;
   padding: 15px;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .exchange-section h3 {
   font-size: 16px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   color: #333;
 }
 
@@ -284,7 +284,7 @@ body {
 
 /* Take Profit Settings */
 .tp-settings {
-  margin-top: 15px;
+  margin-top: 10px;
   padding: 12px;
   background: #f8f9fa;
   border-radius: 6px;
@@ -302,8 +302,8 @@ body {
 .extraction-controls {
   display: flex;
   gap: 10px;
-  margin-top: 15px;
-  margin-bottom: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .extraction-controls .btn {
@@ -361,7 +361,7 @@ body {
 .manual-controls {
   display: flex;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .btn-manual {
@@ -408,7 +408,7 @@ body {
 .tp-controls {
   display: flex;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .btn-macro {
@@ -565,13 +565,13 @@ body {
   background-color: white;
   padding: 15px;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .data-management-section h3 {
   font-size: 16px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   color: #333;
 }
 
@@ -709,7 +709,7 @@ body {
 
 /* Telegram Integration */
 .telegram-integration {
-  margin-top: 15px;
+  margin-top: 10px;
   padding: 12px;
   background: #f8f9fa;
   border-radius: 6px;
