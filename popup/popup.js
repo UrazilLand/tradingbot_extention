@@ -1511,6 +1511,7 @@ const telegramStatusMessage = document.getElementById('telegramStatusMessage');
 let telegramBot = null;
 let telegramPollingInterval = null;
 let isTelegramTrading = false;
+let signalParser = null;
 
 // 텔레그램 설정 로드
 async function loadTelegramSettings() {
@@ -1640,6 +1641,15 @@ async function startTelegramPolling() {
     
     console.log('텔레그램 폴링 시작...');
     
+    // 신호 파서 초기화
+    const userSymbol = userSymbolInput.value.trim();
+    if (!userSymbol) {
+      throw new Error('거래할 심볼을 입력해주세요 (예: BTC)');
+    }
+    
+    signalParser = new SignalParser(userSymbol);
+    console.log(`📊 신호 파서 초기화 완료: ${userSymbol}`);
+    
     // 폴링 시작 (3초 간격)
     telegramPollingInterval = setInterval(async () => {
       await pollTelegramMessages();
@@ -1648,9 +1658,7 @@ async function startTelegramPolling() {
     isTelegramTrading = true;
     
     // 시작 알림 전송
-    const userSymbol = userSymbolInput.value.trim();
-    const symbolInfo = userSymbol ? ` (${userSymbol} only)` : '';
-    await telegramBot.sendMessage(`🤖 Auto trading started${symbolInfo}`);
+    await telegramBot.sendMessage(`🤖 Auto trading started (${userSymbol} only)`);
     
     console.log('텔레그램 폴링 시작됨');
     return true;
@@ -1683,10 +1691,10 @@ async function stopTelegramPolling() {
   }
 }
 
-// 메시지 폴링 (임시 구현 - Phase 8-2에서 신호 파싱 추가 예정)
+// 메시지 폴링 및 신호 파싱 (Phase 8-2 구현 완료)
 async function pollTelegramMessages() {
   try {
-    if (!telegramBot || !isTelegramTrading) return;
+    if (!telegramBot || !isTelegramTrading || !signalParser) return;
     
     const messages = await telegramBot.getUpdates();
     
@@ -1694,23 +1702,104 @@ async function pollTelegramMessages() {
       console.log(`${messages.length}개의 새 메시지 수신:`, messages);
       
       for (const message of messages) {
-        console.log('메시지 처리:', message.text);
-        
-        // Phase 8-2에서 신호 파싱 로직 추가 예정
-        // 현재는 로그만 출력
-        if (message.text) {
-          const userSymbol = userSymbolInput.value.trim().toUpperCase();
-          const messageText = message.text.toUpperCase();
-          
-          // 간단한 테스트용 신호 감지
-          if (messageText.includes('TEST')) {
-            await telegramBot.sendMessage(`✅ Test message received: ${message.text}`);
-          }
-        }
+        await processSignalMessage(message);
       }
     }
   } catch (error) {
     console.error('메시지 폴링 오류:', error);
+  }
+}
+
+// 신호 메시지 처리 및 자동 매크로 실행
+async function processSignalMessage(message) {
+  try {
+    if (!message.text) return;
+    
+    console.log('📨 메시지 처리 시작:', message.text);
+    
+    // TEST 메시지 처리 (기존 기능 유지)
+    if (message.text.toUpperCase().includes('TEST')) {
+      await telegramBot.sendMessage(`✅ Test message received: ${message.text}`);
+      return;
+    }
+    
+    // 신호 파싱
+    const parsedSignal = signalParser.parseSignal(message.text);
+    
+    if (!parsedSignal) {
+      console.log('❌ 신호 파싱 실패 - 지원하지 않는 형식');
+      return;
+    }
+    
+    // 신호 유효성 검증
+    const validation = signalParser.validateSignal(parsedSignal);
+    
+    if (!validation.valid) {
+      console.log(`❌ 신호 검증 실패: ${validation.reason}`);
+      
+      // 심볼 불일치인 경우에는 텔레그램 알림 보내지 않음 (스팸 방지)
+      if (!validation.reason.includes('심볼 불일치')) {
+        await telegramBot.sendMessage(`⚠️ 신호 처리 실패: ${validation.reason}`);
+      }
+      return;
+    }
+    
+    console.log(`✅ 유효한 신호 감지:`, parsedSignal);
+    
+    // 자동 매크로 실행
+    await executeAutoTrade(parsedSignal);
+    
+  } catch (error) {
+    console.error('신호 메시지 처리 오류:', error);
+    await telegramBot.sendMessage(`❌ 신호 처리 중 오류 발생: ${error.message}`);
+  }
+}
+
+// 자동 매크로 실행
+async function executeAutoTrade(signal) {
+  try {
+    console.log(`🚀 자동 매크로 실행 시작: ${signal.action} ${signal.symbol}`);
+    
+    let macroResult;
+    
+    if (signal.action === 'LONG') {
+      // Long 매크로 실행
+      macroResult = await executeLongMacro();
+      
+    } else if (signal.action === 'SHORT') {
+      // Short 매크로 실행  
+      macroResult = await executeShortMacro();
+      
+    } else {
+      throw new Error(`지원하지 않는 액션: ${signal.action}`);
+    }
+    
+    // 실행 결과에 따른 알림 전송
+    if (macroResult && macroResult.success) {
+      const successMessage = `✅ ${signal.symbol} ${signal.action} 매크로 실행 성공!\n` +
+                           `📊 신호: ${signal.originalMessage}\n` +
+                           `⏰ 실행 시간: ${new Date().toLocaleString('ko-KR')}`;
+      
+      await telegramBot.sendMessage(successMessage);
+      console.log('✅ 자동 매크로 실행 성공');
+      
+    } else {
+      const errorMessage = `❌ ${signal.symbol} ${signal.action} 매크로 실행 실패\n` +
+                          `📊 신호: ${signal.originalMessage}\n` +
+                          `🚨 오류: ${macroResult?.error || '알 수 없는 오류'}`;
+      
+      await telegramBot.sendMessage(errorMessage);
+      console.log('❌ 자동 매크로 실행 실패:', macroResult?.error);
+    }
+    
+  } catch (error) {
+    console.error('자동 매크로 실행 오류:', error);
+    
+    const errorMessage = `❌ ${signal.symbol} ${signal.action} 매크로 실행 중 오류 발생\n` +
+                        `📊 신호: ${signal.originalMessage}\n` +
+                        `🚨 오류: ${error.message}`;
+    
+    await telegramBot.sendMessage(errorMessage);
   }
 }
 
