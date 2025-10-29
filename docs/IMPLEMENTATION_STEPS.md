@@ -10,10 +10,10 @@
 - **점진적 확장**: 기본 기능 완성 후 추가 기능 구현
 - **안정성 우선**: 빠른 개발보다 안정적인 동작 우선
 
-### ⏱️ 총 구현 시간: 약 20-30시간
+### ⏱️ 총 구현 시간: 약 23-33시간
 - **Phase 1-4**: 기본 구조 (6시간)
 - **Phase 5-7**: 핵심 기능 (12시간)
-- **Phase 8-11**: 고급 기능 (8-12시간)
+- **Phase 8-12**: 고급 기능 (11-15시간)
 
 ---
 
@@ -2296,52 +2296,78 @@ class NotificationManager {
 
 ---
 
-## 🎯 Phase 11: 추가 기능 구현 (6시간)
+## 🎯 Phase 11: 스크린샷 및 모니터링 시스템 (3시간)
 
 ### 📋 목표
-프로젝트 계획의 추가 기능 구현
+자동 스크린샷 캡처 및 텔레그램 전송으로 실시간 거래 모니터링 구현
 
 ### 🛠️ 구현 단계
 
-#### 11-1. 다양한 전략 구현 (3시간)
+#### 11-1. 자동 스크린샷 시스템 (1.5시간)
 ```javascript
-// RSI 전략
-class RSIStrategy {
-  constructor(period = 14) {
-    this.period = period;
-    this.priceChanges = [];
+// utils/screenshot.js
+class ScreenshotManager {
+  constructor() {
+    this.isCapturing = false;
   }
-  
-  calculateRSI(prices) {
-    // RSI 계산 로직
-    const gains = [];
-    const losses = [];
+
+  async captureCurrentTab() {
+    if (this.isCapturing) return null;
     
-    for (let i = 1; i < prices.length; i++) {
-      const change = prices[i] - prices[i-1];
-      gains.push(change > 0 ? change : 0);
-      losses.push(change < 0 ? Math.abs(change) : 0);
+    try {
+      this.isCapturing = true;
+      
+      const dataUrl = await chrome.tabs.captureVisibleTab(null, {
+        format: 'png',
+        quality: 90
+      });
+      
+      return dataUrl;
+    } catch (error) {
+      console.error('스크린샷 캡처 실패:', error);
+      return null;
+    } finally {
+      this.isCapturing = false;
     }
-    
-    const avgGain = gains.slice(-this.period).reduce((a, b) => a + b, 0) / this.period;
-    const avgLoss = losses.slice(-this.period).reduce((a, b) => a + b, 0) / this.period;
-    
-    const rs = avgGain / avgLoss;
-    return 100 - (100 / (1 + rs));
   }
-  
-  generateSignal(prices) {
-    if (prices.length < this.period + 1) return null;
+
+  async captureWithCompression(quality = 80) {
+    const dataUrl = await this.captureCurrentTab();
+    if (!dataUrl) return null;
     
-    const rsi = this.calculateRSI(prices);
-    
-    if (rsi < 30) {
-      return { type: 'BUY', reason: 'RSI Oversold', confidence: 80 };
-    } else if (rsi > 70) {
-      return { type: 'SELL', reason: 'RSI Overbought', confidence: 80 };
-    }
-    
-    return null;
+    return await this.compressImage(dataUrl, quality);
+  }
+
+  async compressImage(dataUrl, quality) {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // 해상도 조절 (최대 1920x1080)
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        resolve(canvas.toDataURL('image/jpeg', quality / 100));
+      };
+      
+      img.src = dataUrl;
+    });
   }
 }
 
@@ -2523,21 +2549,23 @@ class PerformanceMonitor {
 
 ### ✅ 완료된 Phase
 - **Phase 1-7**: 기본 구조부터 매크로 실행까지 완료 ✅
-- **Phase 8**: 기술적 지표 계산 (진행 예정)
-- **Phase 9**: 자동매매 로직 (계획 단계)
+- **Phase 8**: 텔레그램 연동 (진행 중 - 25% 완료)
+- **Phase 9**: 리스크 관리 (계획 단계)
 - **Phase 10**: UI 완성 (계획 단계)
-- **Phase 11**: 추가 기능 (계획 단계)
+- **Phase 11**: 스크린샷 & 모니터링 (계획 단계)
+- **Phase 12**: 추가 기능 & 최적화 (계획 단계)
 
 ### 🎯 현재 목표
-**Phase 8 구현**: 볼린저 밴드 계산 및 신호 생성 시스템
+**Phase 8 구현**: 텔레그램 폴링 + 다중 심볼 신호 파싱 시스템
 
 ### 📈 예상 완료 시점
-- **Phase 8**: 2일 (6시간)
-- **Phase 9**: 2일 (4시간)
-- **Phase 10**: 1일 (3시간)
-- **Phase 11**: 3일 (6시간)
+- **Phase 8**: 2일 (4시간) - 텔레그램 연동
+- **Phase 9**: 2일 (3시간) - 리스크 관리
+- **Phase 10**: 1일 (3시간) - UI 완성
+- **Phase 11**: 2일 (3시간) - 스크린샷 & 모니터링
+- **Phase 12**: 3일 (4시간) - 추가 기능 & 최적화
 
-**총 예상 기간**: 약 8일 (19시간)
+**총 예상 기간**: 약 10일 (17시간)
 
 ---
 
