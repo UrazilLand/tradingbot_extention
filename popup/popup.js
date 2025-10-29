@@ -1095,10 +1095,9 @@ async function saveSettings() {
     selectedExchange: selectedExchange,
     leverage: leverage,
     position: position,
-    stoploss: stoploss,
-    tradingMode: tradingMode
+    stoploss: stoploss
   });
-  console.log('✅ 설정 저장됨:', { isTrading, selectedExchange, leverage, position, stoploss, tradingMode });
+  console.log('✅ 설정 저장됨:', { isTrading, selectedExchange, leverage, position, stoploss });
 }
 
 // 셀렉터 설정 저장
@@ -1116,7 +1115,7 @@ async function savePriceSelectorSettings(selector) {
 
 // 설정 불러오기
 async function loadSettings() {
-  const result = await chrome.storage.local.get(['isTrading', 'selectedExchange', 'balanceSelector', 'priceSelector', 'leverage', 'position', 'stoploss', 'tradingMode']);
+  const result = await chrome.storage.local.get(['isTrading', 'selectedExchange', 'balanceSelector', 'priceSelector', 'leverage', 'position', 'stoploss']);
   console.log('✅ 저장된 설정:', result);
   
   if (result.isTrading !== undefined) {
