@@ -1630,9 +1630,12 @@ function updateTelegramSymbol() {
 async function startTelegramPolling() {
   try {
     if (!telegramBot) {
-      console.log('텔레그램 봇이 연결되지 않음 - 폴링 시작 불가');
+      console.log('❌ 텔레그램 봇이 연결되지 않음 - 폴링 시작 불가');
+      console.log('💡 해결방법: Settings에서 Bot Token과 Chat ID를 입력하고 Test Connection을 먼저 실행하세요');
       return false;
     }
+    
+    console.log('✅ 텔레그램 봇 연결 상태 확인됨');
     
     if (isTelegramTrading) {
       console.log('이미 텔레그램 폴링 실행 중');
@@ -1645,6 +1648,11 @@ async function startTelegramPolling() {
     const userSymbol = userSymbolInput.value.trim();
     if (!userSymbol) {
       throw new Error('거래할 심볼을 입력해주세요 (예: BTC)');
+    }
+    
+    // SignalParser 클래스 존재 확인
+    if (typeof SignalParser === 'undefined') {
+      throw new Error('SignalParser 클래스가 로드되지 않았습니다. 페이지를 새로고침해주세요.');
     }
     
     signalParser = new SignalParser(userSymbol);
@@ -1713,9 +1721,13 @@ async function pollTelegramMessages() {
 // 신호 메시지 처리 및 자동 매크로 실행
 async function processSignalMessage(message) {
   try {
-    if (!message.text) return;
+    if (!message.text) {
+      console.log('❌ 메시지에 텍스트가 없음:', message);
+      return;
+    }
     
     console.log('📨 메시지 처리 시작:', message.text);
+    console.log('🔧 signalParser 상태:', signalParser ? '✅ 존재' : '❌ 없음');
     
     // TEST 메시지 처리 (기존 기능 유지)
     if (message.text.toUpperCase().includes('TEST')) {
@@ -1724,7 +1736,14 @@ async function processSignalMessage(message) {
     }
     
     // 신호 파싱
+    if (!signalParser) {
+      console.log('❌ signalParser가 초기화되지 않음');
+      await telegramBot.sendMessage('⚠️ 신호 파서가 초기화되지 않았습니다. 자동매매를 다시 시작해주세요.');
+      return;
+    }
+    
     const parsedSignal = signalParser.parseSignal(message.text);
+    console.log('🔍 파싱 결과:', parsedSignal);
     
     if (!parsedSignal) {
       console.log('❌ 신호 파싱 실패 - 지원하지 않는 형식');
