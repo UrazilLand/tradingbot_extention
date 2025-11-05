@@ -1,7 +1,7 @@
 // utils/signalParser.js
 class SignalParser {
   constructor(userSymbol = '') {
-    this.userSymbol = userSymbol.toUpperCase();
+    this.userSymbol = userSymbol; // Trading Trigger는 대소문자 구분
     
     // 다양한 신호 형식을 지원하는 정규표현식들
     this.signalPatterns = [
@@ -23,8 +23,8 @@ class SignalParser {
   }
 
   setUserSymbol(symbol) {
-    this.userSymbol = symbol.toUpperCase();
-    console.log(`📊 사용자 심볼 설정: ${this.userSymbol}`);
+    this.userSymbol = symbol; // Trading Trigger는 대소문자 구분
+    console.log(`📊 사용자 트리거 설정: ${this.userSymbol}`);
   }
 
   parseSignal(message) {
@@ -32,8 +32,9 @@ class SignalParser {
       return null;
     }
 
-    const cleanMessage = message.trim().toUpperCase();
-    console.log(`🔍 신호 파싱 시도: "${cleanMessage}"`);
+    const originalMessage = message.trim();
+    const cleanMessage = originalMessage.toUpperCase(); // 액션 매칭을 위해 대문자 변환
+    console.log(`🔍 신호 파싱 시도: "${originalMessage}"`);
 
     // 먼저 기본 패턴들로 시도
     for (const pattern of this.signalPatterns) {
@@ -45,22 +46,32 @@ class SignalParser {
         // 패턴에 따라 심볼과 액션 위치가 다름
         if (pattern.source.startsWith('^(\\w+)')) {
           // 심볼이 첫 번째인 경우: "BTC LONG"
-          symbol = match[1];
+          // 원본 메시지에서 심볼 추출 (대소문자 유지)
+          const symbolMatch = originalMessage.match(/^(\w+)/i);
+          symbol = symbolMatch ? symbolMatch[1] : match[1];
           action = match[2];
         } else {
           // 액션이 첫 번째인 경우: "LONG BTC"  
           action = match[1];
-          symbol = match[2];
+          // 원본 메시지에서 심볼 추출 (대소문자 유지)
+          const symbolMatch = originalMessage.match(/(\w+)(?:\s|$)/i);
+          if (symbolMatch) {
+            // 첫 번째 단어가 액션이면 두 번째 단어가 심볼
+            const words = originalMessage.split(/\s+/);
+            symbol = words.length > 1 ? words[1] : match[2];
+          } else {
+            symbol = match[2];
+          }
         }
 
-        // 액션 정규화
+        // 액션 정규화 (대소문자 무시)
         action = this.normalizeAction(action);
         
-        // 심볼 정리 (BTCUSDT -> BTC 등)
+        // 심볼 정리 (BTCUSDT -> BTC 등, 대소문자 유지)
         symbol = this.extractBaseSymbol(symbol);
 
         const parsedSignal = {
-          originalMessage: message,
+          originalMessage: originalMessage,
           symbol: symbol,
           action: action,
           timestamp: new Date().toISOString()
@@ -72,7 +83,7 @@ class SignalParser {
     }
 
     // 기본 패턴 실패 시 유연한 파싱 시도
-    const flexibleResult = this.flexibleParsing(cleanMessage, message);
+    const flexibleResult = this.flexibleParsing(cleanMessage, originalMessage);
     if (flexibleResult) {
       return flexibleResult;
     }
@@ -83,31 +94,24 @@ class SignalParser {
 
   // 유연한 파싱 (기본 패턴 실패 시 사용)
   flexibleParsing(cleanMessage, originalMessage) {
-    console.log(`🔄 유연한 파싱 시도: "${cleanMessage}"`);
+    console.log(`🔄 유연한 파싱 시도: "${originalMessage}"`);
     
-    // 알려진 심볼들 목록 (확장 가능)
-    const knownSymbols = [
-      'BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'LINK', 'UNI', 'AVAX', 'MATIC', 'ATOM',
-      'XRP', 'LTC', 'BCH', 'ETC', 'TRX', 'XLM', 'VET', 'FTT', 'ALGO', 'MANA',
-      'SAND', 'CRV', 'AAVE', 'COMP', 'MKR', 'SNX', 'YFI', 'SUSHI', '1INCH',
-      'ENJ', 'BAT', 'ZRX', 'OMG', 'LRC', 'KNC', 'REN', 'STORJ', 'GRT', 'API3'
-    ];
-    
-    // 알려진 액션들
-    const knownActions = ['LONG', 'SHORT', 'BUY', 'SELL'];
+    // 알려진 액션들 (대소문자 무시)
+    const knownActions = ['LONG', 'SHORT', 'BUY', 'SELL', 'CLOSE'];
     
     let foundSymbol = null;
     let foundAction = null;
     
-    // 심볼 찾기
-    for (const symbol of knownSymbols) {
-      if (cleanMessage.includes(symbol)) {
-        foundSymbol = symbol;
-        break;
+    // 사용자 설정 트리거 확인 (대소문자 구분)
+    if (this.userSymbol) {
+      // 원본 메시지에서 정확한 대소문자로 찾기
+      const triggerIndex = originalMessage.indexOf(this.userSymbol);
+      if (triggerIndex !== -1) {
+        foundSymbol = this.userSymbol;
       }
     }
     
-    // 액션 찾기
+    // 액션 찾기 (대소문자 무시)
     for (const action of knownActions) {
       if (cleanMessage.includes(action)) {
         foundAction = this.normalizeAction(action);
@@ -128,10 +132,9 @@ class SignalParser {
       return parsedSignal;
     }
     
-    // 사용자 설정 심볼만 확인 (액션 없이도 허용)
-    if (this.userSymbol && cleanMessage.includes(this.userSymbol)) {
-      // 액션이 없으면 기본값 사용하지 않음 (명시적 신호만 처리)
-      console.log(`⚠️ 심볼만 발견, 액션 없음: ${this.userSymbol}`);
+    // 사용자 설정 트리거만 확인 (액션 없이도 허용하지 않음)
+    if (foundSymbol && !foundAction) {
+      console.log(`⚠️ 트리거만 발견, 액션 없음: ${this.userSymbol}`);
       return null;
     }
     
@@ -162,19 +165,21 @@ class SignalParser {
       return '';
     }
     
-    const originalSymbol = symbol.toUpperCase().trim();
+    const originalSymbol = symbol.trim(); // 대소문자 유지
+    const upperSymbol = originalSymbol.toUpperCase();
     console.log('🔍 심볼 추출 시작:', originalSymbol);
     
     // BTCUSDT, ETHUSDT 등에서 기본 심볼 추출
     // 주의: BTC로 끝나는 경우 제외 (예: WBTC)
-    let baseSymbol = originalSymbol;
+    let baseSymbol = originalSymbol; // 대소문자 유지
     
-    // 일반적인 페어링 제거 (순서 중요)
+    // 일반적인 페어링 제거 (순서 중요, 대소문자 무시)
     const pairings = ['USDT', 'BUSD', 'USDC', 'USD', 'KRW', 'EUR', 'GBP'];
     
     for (const pairing of pairings) {
-      if (baseSymbol.endsWith(pairing) && baseSymbol !== pairing) {
-        baseSymbol = baseSymbol.slice(0, -pairing.length);
+      if (upperSymbol.endsWith(pairing) && upperSymbol !== pairing) {
+        // 대소문자 유지하면서 페어링 제거
+        baseSymbol = originalSymbol.slice(0, -pairing.length);
         console.log(`🔧 ${pairing} 제거: ${originalSymbol} -> ${baseSymbol}`);
         break;
       }
@@ -195,16 +200,8 @@ class SignalParser {
       return false;
     }
 
-    const userSym = this.userSymbol.toUpperCase();
-    const sigSym = signalSymbol.toUpperCase();
-
-    // 정확한 매칭
-    if (userSym === sigSym) {
-      return true;
-    }
-
-    // 부분 매칭 (BTC가 BTCUSDT에 포함되는 경우)
-    if (userSym.includes(sigSym) || sigSym.includes(userSym)) {
+    // Trading Trigger는 대소문자 구분 (정확한 매칭만)
+    if (this.userSymbol === signalSymbol) {
       return true;
     }
 

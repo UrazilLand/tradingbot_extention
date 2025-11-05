@@ -2356,7 +2356,7 @@ async function testTelegramConnection() {
 
 // 심볼 업데이트 (TelegramManager 사용)
 async function updateTelegramSymbol() {
-  const userSymbol = userSymbolInput.value.trim().toUpperCase();
+  const userSymbol = userSymbolInput.value.trim(); // Trading Trigger는 대소문자 구분
   await telegramManager.updateSymbol(userSymbol);
 }
 
@@ -2367,7 +2367,7 @@ async function autoConnectAndStartTelegramPolling() {
 
 // 텔레그램 폴링 시작 (TelegramManager 사용)
 async function startTelegramPolling() {
-  const userSymbol = userSymbolInput ? userSymbolInput.value.trim() : '';
+  const userSymbol = userSymbolInput ? userSymbolInput.value.trim() : ''; // Trading Trigger는 대소문자 구분
   return await telegramManager.startPolling(userSymbol);
 }
 

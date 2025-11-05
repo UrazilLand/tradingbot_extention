@@ -115,7 +115,7 @@ class TelegramManager {
       const settings = {
         botToken: this.botTokenInput.value.trim(),
         chatId: this.chatIdInput.value.trim(),
-        userSymbol: this.userSymbolInput.value.trim().toUpperCase()
+        userSymbol: this.userSymbolInput.value.trim() // Trading Trigger는 대소문자 구분
       };
       
       await this.storageUtils.saveTelegramSettings(settings);
@@ -168,7 +168,7 @@ class TelegramManager {
       
       const botToken = this.botTokenInput.value.trim();
       const chatId = this.chatIdInput.value.trim();
-      const userSymbol = this.userSymbolInput.value.trim();
+        const userSymbol = this.userSymbolInput.value.trim(); // Trading Trigger는 대소문자 구분
       
       if (!botToken || !chatId) {
         this.showStatus('Bot Token and Chat ID are required', 'error');
@@ -230,7 +230,7 @@ class TelegramManager {
   async updateSymbol(userSymbol) {
     if (!userSymbol) return;
     
-    const symbol = userSymbol.trim().toUpperCase();
+    const symbol = userSymbol.trim(); // Trading Trigger는 대소문자 구분
     
     if (this.telegramBot) {
       // 설정 저장
@@ -343,11 +343,12 @@ class TelegramManager {
       console.log('텔레그램 폴링 시작...');
       
       // 신호 파서 초기화
-      if (!userSymbol) {
+      let finalUserSymbol = userSymbol;
+      if (!finalUserSymbol) {
         if (this.userSymbolInput) {
-          userSymbol = this.userSymbolInput.value.trim();
+          finalUserSymbol = this.userSymbolInput.value.trim(); // Trading Trigger는 대소문자 구분
         }
-        if (!userSymbol) {
+        if (!finalUserSymbol) {
           throw new Error('거래할 심볼을 입력해주세요 (예: BTC)');
         }
       }
@@ -357,8 +358,8 @@ class TelegramManager {
         throw new Error('SignalParser 클래스가 로드되지 않았습니다. 페이지를 새로고침해주세요.');
       }
       
-      this.signalParser = new SignalParser(userSymbol);
-      console.log(`📊 신호 파서 초기화 완료: ${userSymbol}`);
+      this.signalParser = new SignalParser(finalUserSymbol);
+      console.log(`📊 신호 파서 초기화 완료: ${finalUserSymbol}`);
       
       // 중복 처리 방지 변수 초기화
       this.lastProcessedMessageId = 0;
