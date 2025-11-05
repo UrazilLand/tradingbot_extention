@@ -3,7 +3,8 @@ const tradingToggle = document.getElementById('tradingToggle');
 const exchangeSelect = document.getElementById('exchangeSelect');
 const goToExchangeBtn = document.getElementById('goToExchangeBtn');
 const leverageValueInput = document.getElementById('leverageValue');
-const tradingModeSelect = document.getElementById('tradingModeSelect');
+// Trading Mode 제거됨 - 항상 One Way Mode로 동작
+const tradingModeSelect = null; // 제거됨
 const stoplossValueInput = document.getElementById('stoplossValue');
 const tp1ValueInput = document.getElementById('tp1Value');
 const tp2ValueInput = document.getElementById('tp2Value');
@@ -163,10 +164,7 @@ stoplossValueInput.addEventListener('input', () => {
   saveSettings();
 });
 
-// Trading Mode 변경 시 설정 저장
-tradingModeSelect.addEventListener('change', () => {
-  saveSettings();
-});
+// Trading Mode 제거됨 - 항상 One Way Mode로 동작
 
 // Auto Refresh 입력 변경 시 설정 저장 및 타이머 업데이트
 if (autoRefreshInterval) {
@@ -979,28 +977,16 @@ async function executeSplitEntry(tradeType) {
   // 총 포지션 비율 계산
   const totalPosition = activePositions.reduce((sum, pos) => sum + pos.value, 0);
   
-  // 거래 모드 확인
-  const tradingMode = tradingModeSelect?.value || 'oneway';
-  
-  // One Way Mode: 100% 포지션이 진입되면 더 이상 진입하지 않음
-  // Hedge Mode: 진입 제한 없이 계속 시도 가능
+  // 항상 One Way Mode로 동작 - 100% 포지션 진입 완료 시 진입 제한
   if (totalEnteredPosition >= totalPosition) {
-    if (tradingMode === 'oneway') {
-      // One Way Mode: 100% 진입 완료 - 진입 제한
-      console.log(`✅ 총 포지션 ${totalPosition}% 진입 완료 (현재: ${totalEnteredPosition}%)`);
-      return { 
-        success: false, 
-        error: `총 포지션 ${totalPosition}%가 진입되었습니다. 포지션이 정리(SL/TP/Close)된 후 다시 진입할 수 있습니다.`,
-        isComplete: true,
-        allStepsComplete: true
-      };
-    } else {
-      // Hedge Mode: 진입 제한 없이 처음부터 다시 시작
-      console.log('🔄 Hedge Mode: 100% 진입 완료 - 처음부터 다시 진입 시작');
-      // 진입 상태 초기화 (진입가는 유지)
-      splitEntryStrategy.executedEntries = [false, false, false];
-      totalEnteredPosition = 0;
-    }
+    // One Way Mode: 100% 진입 완료 - 진입 제한
+    console.log(`✅ 총 포지션 ${totalPosition}% 진입 완료 (현재: ${totalEnteredPosition}%)`);
+    return { 
+      success: false, 
+      error: `총 포지션 ${totalPosition}%가 진입되었습니다. 포지션이 정리(SL/TP/Close)된 후 다시 진입할 수 있습니다.`,
+      isComplete: true,
+      allStepsComplete: true
+    };
   }
   
   // 실행되지 않은 첫 번째 단계 찾기 (100% 미만일 때만)
@@ -1613,7 +1599,8 @@ async function saveSettings() {
   const leverage = parseInt(leverageValueInput.value) || 1;
   const position = splitEntryStrategy.positions[0] || 100; // Use first position for total
   const stoploss = parseFloat(stoplossValueInput.value) || 2;
-  const tradingMode = tradingModeSelect?.value || 'oneway';
+  // Trading Mode 제거됨 - 항상 One Way Mode로 동작
+  const tradingMode = 'oneway';
   const autoRefresh = parseInt(autoRefreshInterval?.value) || 0;
   
   await storageUtils.save({
@@ -1622,7 +1609,7 @@ async function saveSettings() {
     leverage: leverage,
     position: position,
     stoploss: stoploss,
-    tradingMode: tradingMode,
+    tradingMode: 'oneway', // 항상 One Way Mode
     autoRefresh: autoRefresh
   });
   
@@ -1631,7 +1618,7 @@ async function saveSettings() {
   stateManager.setState('settings.leverage', leverage);
   stateManager.setState('settings.position', [position, 0, 0]);
   stateManager.setState('settings.stoploss', stoploss);
-  stateManager.setState('trading.mode', tradingMode);
+  stateManager.setState('trading.mode', 'oneway'); // 항상 One Way Mode
   stateManager.setState('settings.autoRefresh', autoRefresh);
   
   // 자동 새로고침 타이머 업데이트 (Auto Trading이 ON일 때만)
@@ -1656,7 +1643,7 @@ async function savePriceSelectorSettings(selector) {
 
 // 설정 불러오기 (StorageUtils 사용, StateManager 반영)
 async function loadSettings() {
-  const result = await storageUtils.load(['isTrading', 'selectedExchange', 'balanceSelector', 'priceSelector', 'leverage', 'position', 'stoploss', 'tradingMode', 'autoRefresh']);
+  const result = await storageUtils.load(['isTrading', 'selectedExchange', 'balanceSelector', 'priceSelector', 'leverage', 'position', 'stoploss', 'autoRefresh']);
   
   if (result.isTrading !== undefined) {
     isTrading = result.isTrading;
@@ -1692,15 +1679,9 @@ async function loadSettings() {
     stoplossValueInput.value = 2;
     stateManager.setState('settings.stoploss', 2);
   }
-  if (result.tradingMode && tradingModeSelect) {
-    tradingModeSelect.value = result.tradingMode;
-    // StateManager에도 상태 반영
-    stateManager.setState('trading.mode', result.tradingMode);
-  } else if (tradingModeSelect) {
-    // 기본값 One Way Mode
-    tradingModeSelect.value = 'oneway';
-    stateManager.setState('trading.mode', 'oneway');
-  }
+  // Trading Mode 제거됨 - 항상 One Way Mode로 동작
+  stateManager.setState('trading.mode', 'oneway');
+  
   if (result.autoRefresh !== undefined && autoRefreshInterval) {
     autoRefreshInterval.value = result.autoRefresh;
     // StateManager에도 상태 반영
@@ -1829,6 +1810,28 @@ tradingToggle.addEventListener('change', async (e) => {
     // 상태 변경 (StateManager 사용)
     isTrading = false;
     stateManager.setState('trading.isActive', false);
+    
+    // 트레이딩 상태 초기화
+    resetSplitEntryState();
+    currentPosition.isActive = false;
+    currentPosition.entryPrice = null;
+    currentPosition.type = null;
+    currentPosition.entryTime = null;
+    
+    // StateManager에도 상태 업데이트
+    stateManager.setState('position.isActive', false);
+    stateManager.setState('position.entryPrice', null);
+    stateManager.setState('position.current', null);
+    stateManager.setState('position.entryTime', null);
+    
+    // TP 상태 초기화
+    splitTpStrategy.executedTps = [false, false, false];
+    if (customTpStrategy.type === 'trailing') {
+      customTpStrategy.maxProfit = 0;
+      customTpStrategy.trailingStopPrice = null;
+    }
+    
+    updateStopLossPriceDisplay(); // SL 가격 표시 숨김
     updateUI();
     
     // 설정 저장
@@ -2901,6 +2904,8 @@ function updateAutoRefreshCountdown() {
 }
 
 // Trading 모드 업데이트 (Manual/Record)
+// Trading Mode 제거됨 - updateTradingModeSettings 함수 제거
+
 function updateTradingMode(isRecordMode) {
   if (isRecordMode) {
     // Record 모드: Manual 버튼 숨기기, Record 버튼 표시
