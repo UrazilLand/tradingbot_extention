@@ -3,6 +3,12 @@
   "name": "Crypto Trading Bot Extension",
   "version": "1.0.0",
   "description": "볼린저 밴드 기반 암호화폐 자동매매 크롬 익스텐션",
+  "icons": {
+    "16": "assets/icon128.png",
+    "32": "assets/icon128.png",
+    "48": "assets/icon128.png",
+    "128": "assets/icon128.png"
+  },
   "permissions": [
     "activeTab",
     "tabs",
@@ -12,7 +18,13 @@
     "tabCapture"
   ],
   "action": {
-    "default_title": "Crypto Trading Bot"
+    "default_title": "Crypto Trading Bot",
+    "default_icon": {
+      "16": "assets/icon128.png",
+      "32": "assets/icon128.png",
+      "48": "assets/icon128.png",
+      "128": "assets/icon128.png"
+    }
   },
   "side_panel": {
     "default_path": "popup/popup.html"

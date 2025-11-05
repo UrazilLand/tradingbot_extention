@@ -1,4 +1,14 @@
 
+// Content Script 중복 실행 방지
+(function() {
+  'use strict';
+  
+  // 이미 로드된 경우 실행 중단
+  if (window.__tradingBotContentScriptLoaded) {
+    return;
+  }
+  window.__tradingBotContentScriptLoaded = true;
+
 // Content Script 로드 완료 신호
 chrome.runtime.sendMessage({
   action: 'contentScriptLoaded',
@@ -29,8 +39,11 @@ function detectExchange() {
   return null;
 }
 
-// 현재 거래소 감지
-const currentExchange = detectExchange();
+// 현재 거래소 감지 (중복 선언 방지)
+if (typeof window.__tradingBotCurrentExchange === 'undefined') {
+  window.__tradingBotCurrentExchange = detectExchange();
+}
+const currentExchange = window.__tradingBotCurrentExchange;
 
 // ============================================
 // 자본금 추출 함수
@@ -1423,20 +1436,4 @@ function hideMacroRecordingIndicator() {
   }
 }
 
-// 자본금 추출 테스트 (개발용 - 셀렉터 예시)
-console.log('자본금 추출 테스트 실행');
-setTimeout(() => {
-  // 예시 셀렉터들 (실제로는 사용자가 지정)
-  const testSelectors = [
-    '[class*="balance"]',
-    '.balance',
-    '[data-testid="balance"]'
-  ];
-  
-  testSelectors.forEach(selector => {
-    const balance = extractBalance(selector);
-    if (balance) {
-      console.log('자본금 추출 성공:', balance);
-    }
-  });
-}, 2000);
+})(); // IIFE 종료 - 중복 실행 방지

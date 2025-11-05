@@ -93,7 +93,17 @@ class TelegramBot {
       // 새 메시지가 없는 경우
       return [];
     } catch (error) {
-      console.error('메시지 가져오기 실패:', error);
+      // 네트워크 에러나 CORS 에러는 정상적인 경우일 수 있음 (설정 누락 등)
+      if (error.message && error.message.includes('Failed to fetch')) {
+        // 네트워크 연결 문제 또는 CORS 문제
+        console.log('ℹ️ Telegram API 연결 실패 - 네트워크 문제 또는 설정 확인 필요');
+      } else if (error.message && error.message.includes('401')) {
+        // 인증 실패 (잘못된 bot token)
+        console.log('⚠️ Telegram Bot Token이 유효하지 않습니다. 설정을 확인하세요.');
+      } else {
+        // 기타 에러
+        console.error('메시지 가져오기 실패:', error);
+      }
       return [];
     }
   }
@@ -193,13 +203,18 @@ class TelegramBot {
    * @param {boolean} includeScreenshot 스크린샷 포함 여부
    * @returns {Promise<{success: boolean, messageId?: number, photoId?: number, error?: string}>}
    */
-  async sendMessageWithScreenshot(text, includeScreenshot = true) {
+  async sendMessageWithScreenshot(text, includeScreenshot = true, delayBeforeScreenshot = 1000) {
     try {
       // 먼저 메시지 전송
       const messageResult = await this.sendMessage(text);
       
       if (!includeScreenshot || !messageResult) {
         return { success: messageResult, messageId: null };
+      }
+      
+      // 스크린샷 전에 딜레이 (주문 후 화면 업데이트 대기)
+      if (delayBeforeScreenshot > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayBeforeScreenshot));
       }
       
       // 스크린샷 캡처 및 전송

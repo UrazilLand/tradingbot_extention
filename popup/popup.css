@@ -170,6 +170,11 @@ body {
   background-color: #4caf50;
 }
 
+/* Record Toggle - 빨간색 배경 */
+#recordToggle:checked + .toggle-slider {
+  background-color: #f44336;
+}
+
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(24px);
 }
