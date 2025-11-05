@@ -398,14 +398,31 @@ body {
   background-color: #f57c00;
 }
 
-.btn-price {
-  background-color: #2196f3;
+.btn-load {
+  background-color: #4caf50;
+  color: white;
 }
 
-.btn-price:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  border-color: #2196f3;
-  color: #2196f3;
+.btn-load:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btn-save {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.btn-clear {
+  background-color: #ff9800;
+  color: white;
+}
+
+.btn-clear:hover:not(:disabled) {
+  background-color: #f57c00;
 }
 
 /* Take Profit Settings */
@@ -450,6 +467,13 @@ body {
   color: #2196f3 !important;
 }
 
+/* Extract 버튼들은 호버 시 반전 스타일 제거 */
+.extraction-controls .btn-selector.extracted:hover:not(:disabled) {
+  background-color: #1976d2 !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
 /* 데이터가 있을 때 채워진 스타일 */
 .extraction-controls .btn.has-data {
   background-color: #2196f3;
@@ -482,8 +506,46 @@ body {
   color: white !important;
 }
 
-.btn-selector.extracted.btn-price {
-  background-color: #2196f3 !important;
+.btn-selector.extracted:hover:not(:disabled) {
+  background-color: #1976d2 !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
+
+.btn-selector.btn-load {
+  background-color: #4caf50 !important;
+  color: white !important;
+  border: 2px solid transparent !important;
+}
+
+.btn-selector.btn-load:hover:not(:disabled) {
+  background-color: #45a049 !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
+.btn-selector.btn-save {
+  background-color: #f44336 !important;
+  color: white !important;
+  border: 2px solid transparent !important;
+}
+
+.btn-selector.btn-save:hover:not(:disabled) {
+  background-color: #d32f2f !important;
+  border-color: transparent !important;
+  color: white !important;
+}
+
+.btn-selector.btn-clear {
+  background-color: #ff9800 !important;
+  color: white !important;
+  border: 2px solid transparent !important;
+}
+
+.btn-selector.btn-clear:hover:not(:disabled) {
+  background-color: #f57c00 !important;
+  border-color: transparent !important;
   color: white !important;
 }
 

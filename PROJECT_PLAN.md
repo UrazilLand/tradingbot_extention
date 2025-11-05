@@ -83,7 +83,7 @@ tradingbot_extension/
 ### 3. 기본 설정
 1. 거래소 선택 및 접속
 2. 매크로 녹화 (Long, Short, Close)
-3. 텔레그램 봇 설정 (Bot Token, Chat ID, Symbol)
+3. 텔레그램 봇 설정 (Bot Ten, Chat ID, Symbol)
 4. 거래 설정 (Leverage, Position, Stoploss, TP)
 
 ### 4. 자동매매 시작

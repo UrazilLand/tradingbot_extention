@@ -22,9 +22,10 @@ const recordToggle = document.getElementById('recordToggle');
 const autoRefreshInterval = document.getElementById('autoRefreshInterval');
 const autoRefreshCountdown = document.getElementById('autoRefreshCountdown');
 // const resetAllBtn = document.getElementById('resetAllBtn'); // Removed
-const exportDataBtn = document.getElementById('exportDataBtn');
-const importDataBtn = document.getElementById('importDataBtn');
-const importFileInput = document.getElementById('importFileInput');
+const loadDataBtn = document.getElementById('loadDataBtn');
+const saveDataBtn = document.getElementById('saveDataBtn');
+const clearDataBtn = document.getElementById('clearDataBtn');
+const saveFileInput = document.getElementById('saveFileInput');
 const currentAssets = document.getElementById('currentAssets');
 const currentPrice = document.getElementById('currentPrice');
 const currentAmount = document.getElementById('currentAmount');
@@ -401,43 +402,115 @@ manualCloseBtn.addEventListener('click', async () => {
 
 // Reset All Data functionality removed
 
-// Export Data 버튼
-exportDataBtn.addEventListener('click', async () => {
-  await exportAllData();
-});
+// Load Data 버튼 (Import 기능 - 파일에서 데이터 불러오기)
+if (loadDataBtn) {
+  loadDataBtn.addEventListener('click', () => {
+    saveFileInput.click();
+  });
+}
 
-// Import Data 버튼
-importDataBtn.addEventListener('click', () => {
-  importFileInput.click();
-});
+// 파일 선택 시 Load 실행
+if (saveFileInput) {
+  saveFileInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      await loadAllData(file);
+      // 파일 입력 초기화
+      saveFileInput.value = '';
+    }
+  });
+}
 
-// 파일 선택 시 Import 실행
-importFileInput.addEventListener('change', async (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    await importAllData(file);
-    // 파일 입력 초기화
-    importFileInput.value = '';
-  }
-});
+// Save Data 버튼 (Export 기능 - 데이터 다운로드)
+if (saveDataBtn) {
+  saveDataBtn.addEventListener('click', async () => {
+    await saveAllData();
+  });
+}
+
+// Clear Data 버튼
+if (clearDataBtn) {
+  clearDataBtn.addEventListener('click', async () => {
+    await clearAllData();
+  });
+}
 
 // resetAllData function removed
 
-// 모든 데이터 내보내기
-async function exportAllData() {
+// 모든 데이터 불러오기 (Load = Import 기능 - 파일에서 데이터 불러오기)
+async function loadAllData(file) {
   try {
+    const text = await file.text();
+    const loadData = JSON.parse(text);
+    
+    // 버전 확인 (향후 호환성을 위해)
+    if (loadData.version && loadData.version !== '1.0') {
+      // 다른 버전의 데이터 (경고만 표시, 계속 진행)
+    }
+    
+    // exportDate와 version 제거
+    delete loadData.exportDate;
+    delete loadData.version;
+    
+    // 새 데이터로 교체 (StorageUtils 사용)
+    await storageUtils.setAllData(loadData);
+    
+    // UI 새로고침
+    await loadSettings();
+    
+    // 텔레그램 설정도 로드
+    await loadTelegramSettings();
+    
+    updateSelectorButtonStates();
+    updateMacroButtonStates();
+    
+    alert(lang.t('load_data_success', {}));
+    
+  } catch (error) {
+    console.error('Load Data 실패:', error);
+    alert(`${lang.t('load_data_failed', {})}\n${error.message || error}`);
+  }
+}
+
+// 모든 데이터 삭제
+async function clearAllData() {
+  try {
+    // 확인 메시지
+    const confirmMessage = lang.t('clear_data_confirm', {});
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    
+    // 모든 데이터 삭제 (StorageUtils 사용)
+    await storageUtils.clear();
+    
+    // 페이지 새로고침하여 UI 초기화
+    alert(lang.t('clear_data_success', {}));
+    location.reload();
+    
+  } catch (error) {
+    alert(lang.t('clear_data_failed', {}));
+  }
+}
+
+// 모든 데이터 저장하기 (Save = Export 기능 - 데이터 다운로드)
+async function saveAllData() {
+  try {
+    // 텔레그램 설정 먼저 저장
+    await saveTelegramSettings();
+    
     // 모든 저장된 데이터 가져오기 (StorageUtils 사용)
     const allData = await storageUtils.getAllData();
     
     // 현재 설정 추가
-    const exportData = {
+    const saveData = {
       ...allData,
       exportDate: new Date().toISOString(),
       version: '1.0'
     };
     
     // JSON 파일로 다운로드
-    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataStr = JSON.stringify(saveData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     
     const url = URL.createObjectURL(dataBlob);
@@ -451,40 +524,10 @@ async function exportAllData() {
     
     URL.revokeObjectURL(url);
     
-    alert('데이터가 성공적으로 내보내졌습니다.');
+    alert(lang.t('save_data_success', {}));
     
   } catch (error) {
-    alert('데이터 내보내기에 실패했습니다.');
-  }
-}
-
-// 모든 데이터 가져오기
-async function importAllData(file) {
-  try {
-    const text = await file.text();
-    const importData = JSON.parse(text);
-    
-    // 버전 확인 (향후 호환성을 위해)
-    if (importData.version && importData.version !== '1.0') {
-      // 다른 버전의 데이터 (경고만 표시, 계속 진행)
-    }
-    
-    // exportDate와 version 제거
-    delete importData.exportDate;
-    delete importData.version;
-    
-    // 새 데이터로 교체 (StorageUtils 사용)
-    await storageUtils.setAllData(importData);
-    
-    // UI 새로고침
-    await loadSettings();
-    updateSelectorButtonStates();
-    updateMacroButtonStates();
-    
-    alert('데이터가 성공적으로 가져와졌습니다.');
-    
-  } catch (error) {
-    alert('데이터 가져오기에 실패했습니다. 파일 형식을 확인해주세요.');
+    alert(lang.t('save_data_failed', {}));
   }
 }
 
@@ -2320,6 +2363,7 @@ const botTokenInput = document.getElementById('botToken');
 const chatIdInput = document.getElementById('chatId');
 const userSymbolInput = document.getElementById('userSymbol');
 const testTelegramConnectionBtn = document.getElementById('testTelegramConnection');
+const copyWebhookUrlBtn = document.getElementById('copyWebhookUrl');
 const telegramStatusMessage = document.getElementById('telegramStatusMessage');
 
 // 텔레그램 봇 인스턴스 (TelegramManager로 마이그레이션 중 - 하위 호환성 유지)
@@ -2345,12 +2389,105 @@ function showTelegramStatus(message, type = 'info') {
 
 // 텔레그램 연결 테스트 (TelegramManager 사용)
 async function testTelegramConnection() {
-  const success = await telegramManager.testConnection();
-  
-  // 자동매매가 이미 실행 중이면 폴링도 자동 시작
-  if (success && isTrading && !telegramManager.isTelegramTrading) {
-    console.log('🔄 자동매매 실행 중 - 텔레그램 폴링 자동 시작');
-    await telegramManager.startPolling();
+  try {
+    const botToken = botTokenInput ? botTokenInput.value.trim() : '';
+    const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+    
+    if (!botToken || !chatId) {
+      if (telegramStatusMessage) {
+        telegramStatusMessage.textContent = 'Bot Token and Chat ID are required';
+        telegramStatusMessage.style.color = '#f44336';
+      }
+      return;
+    }
+    
+    // 버튼 비활성화 및 색상 변경
+    let originalBgColor = null;
+    if (testTelegramConnectionBtn) {
+      testTelegramConnectionBtn.disabled = true;
+      originalBgColor = testTelegramConnectionBtn.style.backgroundColor || '#6c757d';
+      testTelegramConnectionBtn.style.backgroundColor = '#2196f3';
+    }
+    
+    if (telegramStatusMessage) {
+      telegramStatusMessage.textContent = 'Testing connection...';
+      telegramStatusMessage.style.color = '#2196f3';
+    }
+    
+    // TelegramBot 인스턴스 생성
+    const telegramBot = new TelegramBot(botToken, chatId);
+    
+    // 테스트 메시지 전송
+    const testMessage = `✅ Telegram Connection Test\n` +
+                       `Extension: Crypto Trading Bot\n` +
+                       `Time: ${new Date().toLocaleString()}\n` +
+                       `Status: Connected Successfully`;
+    
+    const result = await telegramBot.sendMessage(testMessage);
+    
+    if (result) {
+      // 성공 - 버튼 색상을 녹색으로 변경
+      if (testTelegramConnectionBtn) {
+        testTelegramConnectionBtn.style.backgroundColor = '#4caf50';
+      }
+      
+      if (telegramStatusMessage) {
+        telegramStatusMessage.textContent = 'Test message sent successfully! Check your Telegram.';
+        telegramStatusMessage.style.color = '#4caf50';
+      }
+      
+      // 설정 저장
+      await telegramManager.saveSettings();
+      
+      // TelegramManager에 봇 인스턴스 설정
+      telegramManager.telegramBot = telegramBot;
+      telegramManager.syncToGlobalVars();
+      
+      // 신호 파서 초기화
+      const userSymbol = userSymbolInput ? userSymbolInput.value.trim() : '';
+      if (userSymbol && typeof SignalParser !== 'undefined') {
+        telegramManager.signalParser = new SignalParser(userSymbol);
+      }
+      
+      console.log('✅ 텔레그램 연결 테스트 성공 - 메시지 전송됨');
+      
+      // 1.5초 후 원래 색상으로 복귀
+      setTimeout(() => {
+        if (testTelegramConnectionBtn && originalBgColor) {
+          testTelegramConnectionBtn.style.backgroundColor = originalBgColor;
+        }
+      }, 1500);
+    } else {
+      throw new Error('Failed to send test message');
+    }
+  } catch (error) {
+    console.error('❌ 텔레그램 연결 테스트 실패:', error);
+    
+    // 실패 시 버튼 색상을 빨간색으로 변경
+    if (testTelegramConnectionBtn) {
+      testTelegramConnectionBtn.style.backgroundColor = '#f44336';
+      setTimeout(() => {
+        if (testTelegramConnectionBtn && originalBgColor) {
+          testTelegramConnectionBtn.style.backgroundColor = originalBgColor;
+        }
+      }, 1500);
+    }
+    
+    if (telegramStatusMessage) {
+      telegramStatusMessage.textContent = `Connection failed: ${error.message}`;
+      telegramStatusMessage.style.color = '#f44336';
+    }
+  } finally {
+    if (testTelegramConnectionBtn) {
+      testTelegramConnectionBtn.disabled = false;
+    }
+    
+    // 자동매매가 이미 실행 중이면 폴링도 자동 시작
+    const success = telegramManager.telegramBot !== null;
+    if (success && isTrading && !telegramManager.isTelegramTrading) {
+      console.log('🔄 자동매매 실행 중 - 텔레그램 폴링 자동 시작');
+      await telegramManager.startPolling();
+    }
   }
 }
 
@@ -2549,8 +2686,63 @@ async function executeTelegramMacro(type, amount) {
 if (testTelegramConnectionBtn) {
   testTelegramConnectionBtn.addEventListener('click', testTelegramConnection);
 }
+
+// 웹훅 URL 복사 함수
+async function copyWebhookUrl() {
+  try {
+    const botToken = botTokenInput ? botTokenInput.value.trim() : '';
+    const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+    
+    if (!botToken || !chatId) {
+      alert('Bot Token과 Chat ID를 먼저 입력해주세요.');
+      return;
+    }
+    
+    // TradingView 웹훅 URL 생성
+    const webhookUrl = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}`;
+    
+    // 클립보드에 복사
+    await navigator.clipboard.writeText(webhookUrl);
+    
+    // 성공 시 버튼 색상만 녹색으로 변경
+    if (copyWebhookUrlBtn) {
+      const originalBgColor = copyWebhookUrlBtn.style.backgroundColor || '#6c757d';
+      copyWebhookUrlBtn.style.backgroundColor = '#4caf50';
+      
+      setTimeout(() => {
+        copyWebhookUrlBtn.style.backgroundColor = originalBgColor;
+      }, 1500);
+    }
+    
+    console.log('웹훅 URL 복사됨:', webhookUrl);
+  } catch (error) {
+    console.error('웹훅 URL 복사 실패:', error);
+    alert('URL 복사에 실패했습니다. 수동으로 복사해주세요.');
+  }
+}
+
+// URL 버튼 이벤트 리스너
+if (copyWebhookUrlBtn) {
+  copyWebhookUrlBtn.addEventListener('click', copyWebhookUrl);
+}
+// 텔레그램 입력 필드 자동 저장
+if (botTokenInput) {
+  botTokenInput.addEventListener('blur', async () => {
+    await saveTelegramSettings();
+  });
+}
+
+if (chatIdInput) {
+  chatIdInput.addEventListener('blur', async () => {
+    await saveTelegramSettings();
+  });
+}
+
 if (userSymbolInput) {
   userSymbolInput.addEventListener('change', updateTelegramSymbol);
+  userSymbolInput.addEventListener('blur', async () => {
+    await saveTelegramSettings();
+  });
 }
 
 // 데이터 표시 업데이트 함수

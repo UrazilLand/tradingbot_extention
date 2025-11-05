@@ -51,7 +51,7 @@
       <!-- Data Extraction Buttons -->
       <div class="extraction-controls">
         <button id="extractAssetsBtn" class="btn btn-selector" data-lang="extract_assets">Assets Extraction</button>
-        <button id="extractPriceBtn" class="btn btn-selector btn-price" data-lang="extract_price">Price Extraction</button>
+        <button id="extractPriceBtn" class="btn btn-selector" data-lang="extract_price">Price Extraction</button>
       </div>
     </div>
 
@@ -182,7 +182,10 @@
       <div class="telegram-integration">
         <div class="telegram-header">
           <h4 data-lang="telegram_settings">Telegram Integration</h4>
-          <button id="testTelegramConnection" class="btn btn-test" data-lang="test">Test</button>
+          <div style="display: flex; gap: 5px; align-items: center;">
+            <button id="copyWebhookUrl" class="btn btn-test" data-lang="url">URL</button>
+            <button id="testTelegramConnection" class="btn btn-test" data-lang="test">Test</button>
+          </div>
         </div>
         
         <div class="input-group">
@@ -205,9 +208,10 @@
       
       <!-- Data Management Buttons -->
       <div class="extraction-controls">
-        <button id="exportDataBtn" class="btn btn-selector" data-lang="export_data">Export Data</button>
-        <button id="importDataBtn" class="btn btn-selector btn-price" data-lang="import_data">Import Data</button>
-        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        <button id="loadDataBtn" class="btn btn-selector btn-load" data-lang="load_data">Load Data</button>
+        <button id="saveDataBtn" class="btn btn-selector btn-save" data-lang="save_data">Save Data</button>
+        <button id="clearDataBtn" class="btn btn-selector btn-clear" data-lang="clear_data">Clear Data</button>
+        <input type="file" id="saveFileInput" accept=".json" style="display: none;">
       </div>
     </div>
 
