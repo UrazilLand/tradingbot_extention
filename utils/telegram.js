@@ -64,8 +64,10 @@ class TelegramBot {
         const messages = data.result;
         console.log(`${messages.length}개의 새 업데이트 수신`);
         
-        // 마지막 업데이트 ID 갱신
-        this.lastUpdateId = messages[messages.length - 1].update_id;
+        // 마지막 업데이트 ID 갱신 (중복 방지)
+        const lastUpdate = messages[messages.length - 1];
+        this.lastUpdateId = lastUpdate.update_id;
+        console.log(`📝 lastUpdateId 업데이트: ${this.lastUpdateId}`);
         
         // 지정된 채팅에서 온 메시지만 필터링
         const relevantMessages = messages.filter(msg => 
@@ -137,6 +139,123 @@ class TelegramBot {
     } catch (error) {
       console.error('메시지 전송 오류:', error);
       return false;
+    }
+  }
+
+  /**
+   * 사진 전송 (스크린샷 기능)
+   * @param {Blob} photoBlob 이미지 Blob 데이터
+   * @param {string} caption 사진 설명
+   * @returns {Promise<{success: boolean, messageId?: number, error?: string}>}
+   */
+  async sendPhoto(photoBlob, caption = '') {
+    try {
+      const url = `${this.baseUrl}/sendPhoto`;
+      
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('chat_id', this.chatId);
+      formData.append('photo', photoBlob, 'screenshot.png');
+      if (caption) {
+        formData.append('caption', caption);
+        formData.append('parse_mode', 'HTML');
+      }
+
+      console.log('사진 전송 시도:', { 
+        size: photoBlob.size, 
+        caption: caption.substring(0, 30) + (caption.length > 30 ? '...' : ''),
+        chatId: this.chatId 
+      });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        console.log('사진 전송 성공:', data.result.message_id);
+        return { success: true, messageId: data.result.message_id };
+      } else {
+        console.error('사진 전송 실패:', data.description);
+        return { success: false, error: data.description };
+      }
+    } catch (error) {
+      console.error('사진 전송 오류:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 메시지와 스크린샷 함께 전송
+   * @param {string} text 전송할 메시지
+   * @param {boolean} includeScreenshot 스크린샷 포함 여부
+   * @returns {Promise<{success: boolean, messageId?: number, photoId?: number, error?: string}>}
+   */
+  async sendMessageWithScreenshot(text, includeScreenshot = true) {
+    try {
+      // 먼저 메시지 전송
+      const messageResult = await this.sendMessage(text);
+      
+      if (!includeScreenshot || !messageResult) {
+        return { success: messageResult, messageId: null };
+      }
+      
+      // 스크린샷 캡처 및 전송
+      try {
+        const screenshot = await this.captureScreenshot();
+        if (screenshot) {
+          const photoResult = await this.sendPhoto(screenshot, '📸 Trading Screen Capture');
+          return { 
+            success: messageResult && photoResult.success,
+            messageId: null,
+            photoId: photoResult.messageId,
+            error: photoResult.error
+          };
+        }
+      } catch (screenshotError) {
+        console.warn('스크린샷 전송 실패 (메시지는 전송됨):', screenshotError);
+        // 스크린샷 실패해도 메시지는 전송되었으므로 성공으로 처리
+      }
+      
+      return { success: messageResult, messageId: null };
+      
+    } catch (error) {
+      console.error('메시지+스크린샷 전송 오류:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 스크린샷 캡처 (Chrome API 사용)
+   * @returns {Promise<Blob>} 스크린샷 Blob 데이터
+   */
+  async captureScreenshot() {
+    try {
+      // 활성 탭 가져오기
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab) {
+        throw new Error('활성 탭을 찾을 수 없습니다');
+      }
+      
+      // 스크린샷 캡처
+      const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+        format: 'png',
+        quality: 90
+      });
+      
+      // Data URL을 Blob으로 변환
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      console.log('스크린샷 캡처 성공:', blob.size, 'bytes');
+      return blob;
+      
+    } catch (error) {
+      console.error('스크린샷 캡처 실패:', error);
+      throw error;
     }
   }
   

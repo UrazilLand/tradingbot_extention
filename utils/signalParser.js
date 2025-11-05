@@ -35,6 +35,7 @@ class SignalParser {
     const cleanMessage = message.trim().toUpperCase();
     console.log(`🔍 신호 파싱 시도: "${cleanMessage}"`);
 
+    // 먼저 기본 패턴들로 시도
     for (const pattern of this.signalPatterns) {
       const match = cleanMessage.match(pattern);
       
@@ -70,7 +71,71 @@ class SignalParser {
       }
     }
 
+    // 기본 패턴 실패 시 유연한 파싱 시도
+    const flexibleResult = this.flexibleParsing(cleanMessage, message);
+    if (flexibleResult) {
+      return flexibleResult;
+    }
+
     console.log(`❌ 신호 파싱 실패: 패턴 매칭되지 않음`);
+    return null;
+  }
+
+  // 유연한 파싱 (기본 패턴 실패 시 사용)
+  flexibleParsing(cleanMessage, originalMessage) {
+    console.log(`🔄 유연한 파싱 시도: "${cleanMessage}"`);
+    
+    // 알려진 심볼들 목록 (확장 가능)
+    const knownSymbols = [
+      'BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'LINK', 'UNI', 'AVAX', 'MATIC', 'ATOM',
+      'XRP', 'LTC', 'BCH', 'ETC', 'TRX', 'XLM', 'VET', 'FTT', 'ALGO', 'MANA',
+      'SAND', 'CRV', 'AAVE', 'COMP', 'MKR', 'SNX', 'YFI', 'SUSHI', '1INCH',
+      'ENJ', 'BAT', 'ZRX', 'OMG', 'LRC', 'KNC', 'REN', 'STORJ', 'GRT', 'API3'
+    ];
+    
+    // 알려진 액션들
+    const knownActions = ['LONG', 'SHORT', 'BUY', 'SELL'];
+    
+    let foundSymbol = null;
+    let foundAction = null;
+    
+    // 심볼 찾기
+    for (const symbol of knownSymbols) {
+      if (cleanMessage.includes(symbol)) {
+        foundSymbol = symbol;
+        break;
+      }
+    }
+    
+    // 액션 찾기
+    for (const action of knownActions) {
+      if (cleanMessage.includes(action)) {
+        foundAction = this.normalizeAction(action);
+        break;
+      }
+    }
+    
+    // 심볼과 액션이 모두 발견된 경우
+    if (foundSymbol && foundAction) {
+      const parsedSignal = {
+        originalMessage: originalMessage,
+        symbol: foundSymbol,
+        action: foundAction,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`✅ 유연한 파싱 성공:`, parsedSignal);
+      return parsedSignal;
+    }
+    
+    // 사용자 설정 심볼만 확인 (액션 없이도 허용)
+    if (this.userSymbol && cleanMessage.includes(this.userSymbol)) {
+      // 액션이 없으면 기본값 사용하지 않음 (명시적 신호만 처리)
+      console.log(`⚠️ 심볼만 발견, 액션 없음: ${this.userSymbol}`);
+      return null;
+    }
+    
+    console.log(`❌ 유연한 파싱 실패: 심볼=${foundSymbol}, 액션=${foundAction}`);
     return null;
   }
 
@@ -92,9 +157,37 @@ class SignalParser {
   }
 
   extractBaseSymbol(symbol) {
+    if (!symbol || typeof symbol !== 'string') {
+      console.log('❌ extractBaseSymbol: 유효하지 않은 심볼 -', symbol);
+      return '';
+    }
+    
+    const originalSymbol = symbol.toUpperCase().trim();
+    console.log('🔍 심볼 추출 시작:', originalSymbol);
+    
     // BTCUSDT, ETHUSDT 등에서 기본 심볼 추출
-    const baseSymbol = symbol.replace(/USDT|USD|BUSD|BTC|ETH$/i, '');
-    return baseSymbol.toUpperCase();
+    // 주의: BTC로 끝나는 경우 제외 (예: WBTC)
+    let baseSymbol = originalSymbol;
+    
+    // 일반적인 페어링 제거 (순서 중요)
+    const pairings = ['USDT', 'BUSD', 'USDC', 'USD', 'KRW', 'EUR', 'GBP'];
+    
+    for (const pairing of pairings) {
+      if (baseSymbol.endsWith(pairing) && baseSymbol !== pairing) {
+        baseSymbol = baseSymbol.slice(0, -pairing.length);
+        console.log(`🔧 ${pairing} 제거: ${originalSymbol} -> ${baseSymbol}`);
+        break;
+      }
+    }
+    
+    // 결과 검증
+    if (baseSymbol.length === 0) {
+      console.log('⚠️ 심볼 추출 결과가 비어있음, 원본 사용:', originalSymbol);
+      baseSymbol = originalSymbol;
+    }
+    
+    console.log('✅ 심볼 추출 완료:', baseSymbol);
+    return baseSymbol;
   }
 
   isSymbolMatch(signalSymbol) {
@@ -119,29 +212,44 @@ class SignalParser {
   }
 
   validateSignal(parsedSignal) {
+    console.log('🔍 신호 검증 시작:', parsedSignal);
+    
     if (!parsedSignal) {
+      console.log('❌ 검증 실패: 파싱된 신호가 없음');
       return { valid: false, reason: '파싱된 신호가 없음' };
     }
 
-    if (!parsedSignal.symbol) {
+    if (!parsedSignal.symbol || parsedSignal.symbol.trim() === '') {
+      console.log('❌ 검증 실패: 심볼이 없음 -', parsedSignal.symbol);
       return { valid: false, reason: '심볼이 없음' };
     }
 
-    if (!parsedSignal.action) {
+    if (!parsedSignal.action || parsedSignal.action.trim() === '') {
+      console.log('❌ 검증 실패: 액션이 없음 -', parsedSignal.action);
       return { valid: false, reason: '액션이 없음' };
     }
 
     if (!['LONG', 'SHORT'].includes(parsedSignal.action)) {
+      console.log('❌ 검증 실패: 지원하지 않는 액션 -', parsedSignal.action);
       return { valid: false, reason: '지원하지 않는 액션' };
     }
 
-    if (!this.isSymbolMatch(parsedSignal.symbol)) {
+    const symbolMatch = this.isSymbolMatch(parsedSignal.symbol);
+    console.log('🔍 심볼 매칭 확인:', {
+      설정된심볼: this.userSymbol,
+      신호심볼: parsedSignal.symbol,
+      매칭결과: symbolMatch
+    });
+
+    if (!symbolMatch) {
+      console.log('❌ 검증 실패: 심볼 불일치');
       return { 
         valid: false, 
         reason: `심볼 불일치 (설정: ${this.userSymbol}, 신호: ${parsedSignal.symbol})` 
       };
     }
 
+    console.log('✅ 신호 검증 성공');
     return { valid: true };
   }
 
@@ -164,11 +272,50 @@ class SignalParser {
     ];
 
     console.log('🧪 신호 파싱 테스트 시작...');
+    console.log(`설정된 심볼: ${this.userSymbol}`);
     
     testMessages.forEach(msg => {
       const result = this.parseSignal(msg);
+      const validation = this.validateSignal(result);
+      
       console.log(`"${msg}" -> `, result);
+      console.log(`   검증: ${validation.valid ? '✅' : '❌'} ${validation.reason || ''}`);
     });
+  }
+
+  // Phase 8 통합 테스트용 메서드
+  static testPhase8Integration(userSymbol = 'BTC') {
+    console.log('🚀 Phase 8 통합 테스트 시작...');
+    
+    // 1. SignalParser 테스트
+    const parser = new SignalParser(userSymbol);
+    console.log('1️⃣ SignalParser 초기화 완료');
+    
+    // 2. 다양한 신호 형식 테스트
+    const testSignals = [
+      'BTC LONG',
+      'ETH SHORT',  // 심볼 불일치 (BTC 설정인 경우)
+      'LONG BTC',
+      'SHORT BTC',
+      '📈 BTC LONG',
+      'BTCUSDT LONG'
+    ];
+    
+    console.log('2️⃣ 신호 파싱 테스트:');
+    testSignals.forEach(signal => {
+      const parsed = parser.parseSignal(signal);
+      const validation = parser.validateSignal(parsed);
+      
+      console.log(`   "${signal}"`);
+      console.log(`   -> 파싱: ${parsed ? '✅' : '❌'}`);
+      if (parsed) {
+        console.log(`   -> 심볼: ${parsed.symbol}, 액션: ${parsed.action}`);
+        console.log(`   -> 검증: ${validation.valid ? '✅' : '❌'} ${validation.reason || ''}`);
+      }
+    });
+    
+    console.log('3️⃣ Phase 8 테스트 완료');
+    return true;
   }
 }
 

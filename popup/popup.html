@@ -11,148 +11,209 @@
     <!-- Exchange Selection -->
     <div class="exchange-selector">
       <select id="exchangeSelect" class="exchange-dropdown">
-        <option value="">Select Exchange</option>
+        <option value="" data-lang="exchange_select">Select Exchange</option>
         <option value="binance">Binance</option>
         <option value="gateio">Gate.io</option>
         <option value="upbit">Upbit</option>
         <option value="coinbase">Coinbase</option>
       </select>
-      <button id="goToExchangeBtn" class="btn btn-go" disabled>Go</button>
-    </div>
-
-    <!-- Main Control Buttons -->
-    <div class="button-section">
-      <button id="startBtn" class="btn btn-start">Start Trading</button>
-      <button id="stopBtn" class="btn btn-stop" disabled>Stop Trading</button>
+      <button id="goToExchangeBtn" class="btn btn-go" disabled>Open</button>
     </div>
 
     <!-- Status Display Area -->
     <div class="status-section">
       <div class="status-header">
-        <h2>Trading Status</h2>
-        <div class="status-indicator">
-          <span class="status-dot"></span>
-          <span class="status-text">Standby</span>
+        <h2 data-lang="trading_status">Trading Status</h2>
+        <div class="status-controls">
+          <span class="toggle-label" data-lang="auto_trading">Auto Trading</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="tradingToggle" />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
       <div class="assets-display">
-        <div class="assets-label">Assets:</div>
+        <div class="assets-label" data-lang="current_assets">Assets:</div>
         <div id="currentAssets" class="assets-value">-</div>
       </div>
       <div class="assets-display">
-        <div class="assets-label">Price:</div>
-        <div id="currentPrice" class="assets-value">-</div>
+        <div class="assets-label" data-lang="current_price">Price:</div>
+        <div class="price-container">
+          <div id="currentPrice" class="assets-value">-</div>
+          <div id="stopLossPrice" class="sl-price-value" style="display: none;">(-)</div>
+        </div>
       </div>
       <div class="assets-display">
-        <div class="assets-label">Amount:</div>
+        <div class="assets-label" data-lang="calculated_amount">Amount:</div>
         <div id="currentAmount" class="assets-value">-</div>
-      </div>
-    </div>
-
-    <!-- Manual Trading Controls -->
-    <div class="manual-controls">
-      <button id="manualLongBtn" class="btn btn-manual btn-long">Quick Long</button>
-      <button id="manualShortBtn" class="btn btn-manual btn-short">Quick Short</button>
-    </div>
-
-    <!-- Settings Area -->
-    <div class="exchange-section">
-      <h3>Settings</h3>
-      
-      
-      <div class="setting-item-row">
-        <div class="setting-label">Leverage</div>
-        <input type="number" id="leverageValue" min="1" max="125" value="1" class="setting-input" />
-      </div>
-      
-      <div class="setting-item-row">
-        <div class="setting-label">Position (%)</div>
-          <input type="number" id="positionValue" min="0" max="100" value="100" step="0.1" class="setting-input" />
-      </div>
-      
-      <div class="setting-item-row">
-        <div class="setting-label">Stoploss (%)</div>
-        <input type="number" id="stoplossValue" min="0" max="100" value="2" step="0.1" class="setting-input" />
-      </div>
-      
-      <!-- Take Profit Settings -->
-      <div class="tp-settings">
-        <h4>Take Profit Settings</h4>
-        <div class="setting-item-row">
-          <div class="setting-label">TP 1 (%)</div>
-          <input type="number" id="tp1Value" min="0" max="1000" value="3" step="0.1" class="setting-input" />
-        </div>
-        <div class="setting-item-row">
-          <div class="setting-label">TP 2 (%)</div>
-          <input type="number" id="tp2Value" min="0" max="1000" value="6" step="0.1" class="setting-input" />
-        </div>
       </div>
       
       <!-- Data Extraction Buttons -->
       <div class="extraction-controls">
-        <button id="extractAssetsBtn" class="btn btn-selector">Assets Extraction</button>
-        <button id="extractPriceBtn" class="btn btn-selector btn-price">Price Extraction</button>
+        <button id="extractAssetsBtn" class="btn btn-selector" data-lang="extract_assets">Assets Extraction</button>
+        <button id="extractPriceBtn" class="btn btn-selector btn-price" data-lang="extract_price">Price Extraction</button>
+      </div>
+    </div>
+
+    <!-- Trading Card -->
+    <div class="exchange-section">
+      <div class="trading-header">
+        <h3 data-lang="trading">Trading</h3>
+        <div class="trading-controls">
+          <span class="toggle-label" data-lang="record">Record</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="recordToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
       
-      <!-- Macro Recording Controls -->
-      <div class="macro-controls">
-        <button id="longRecordBtn" class="btn btn-macro btn-long">Long Record</button>
-        <button id="shortRecordBtn" class="btn btn-macro btn-short">Short Record</button>
+      <!-- Trading Controls (Manual + Record) -->
+      <div class="trading-controls-section">
+        <div class="trading-controls-grid">
+          <div class="trading-controls-column">
+            <button id="manualLongBtn" class="btn btn-manual btn-long" data-lang="manual_long">Long</button>
+            <button id="longRecordBtn" class="btn btn-macro btn-long" data-lang="record_long">Long Record</button>
+          </div>
+          <div class="trading-controls-column">
+            <button id="manualShortBtn" class="btn btn-manual btn-short" data-lang="manual_short">Short</button>
+            <button id="shortRecordBtn" class="btn btn-macro btn-short" data-lang="record_short">Short Record</button>
+          </div>
+        </div>
+        <div class="trading-controls-row">
+          <button id="manualCloseBtn" class="btn btn-manual btn-close" data-lang="manual_close">Close</button>
+          <button id="closeRecordBtn" class="btn btn-sl-close btn-close" data-lang="close_record">Close Record</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trading Options Card -->
+    <div class="exchange-section">
+      <h3 data-lang="trading_options">Trading Options</h3>
+      
+      <!-- Trading Mode -->
+      <div class="setting-item-row">
+        <div class="setting-label" data-lang="trading_mode">Trading Mode</div>
+        <select id="tradingModeSelect" class="setting-input">
+          <option value="oneway" data-lang="one_way_mode">One Way Mode</option>
+          <option value="hedge" data-lang="hedge_mode">Hedge Mode</option>
+        </select>
       </div>
       
-      <!-- Stop Loss & Close Controls -->
-      <div class="sl-close-controls">
-        <button id="slRecordBtn" class="btn btn-sl-close btn-sl">SL Record</button>
-        <button id="closeRecordBtn" class="btn btn-sl-close btn-close">Close Record</button>
+      <div class="setting-item-row">
+        <div class="setting-label" data-lang="leverage">Leverage</div>
+        <input type="number" id="leverageValue" min="1" max="125" value="1" class="setting-input" />
       </div>
       
-      <!-- Take Profit Controls -->
-      <div class="tp-controls">
-        <button id="tp1RecordBtn" class="btn btn-tp btn-tp1">TP1 Record</button>
-        <button id="tp2RecordBtn" class="btn btn-tp btn-tp2">TP2 Record</button>
+      <div class="setting-item-row">
+        <div class="setting-label" data-lang="position_percent">Position (%)</div>
+        <div class="position-inputs">
+          <input type="number" id="position1" min="0" max="100" value="100" step="0.1" class="setting-input position-split" />
+          <input type="number" id="position2" min="0" max="100" value="0" step="0.1" class="setting-input position-split" />
+          <input type="number" id="position3" min="0" max="100" value="0" step="0.1" class="setting-input position-split" />
+        </div>
+      </div>
+      
+      <!-- Stop Loss Settings -->
+      <div class="setting-item-row sl-setting">
+        <div class="setting-label" data-lang="stoploss_percent">Stoploss (%)</div>
+        <input type="number" id="stoplossValue" min="0" max="99.9" value="2" step="0.1" class="setting-input sl-input" />
+      </div>
+      
+      <!-- Take Profit Strategy -->
+      <div class="setting-item-row tp-setting">
+        <div class="setting-label" data-lang="select_strategy">TP Strategy</div>
+        <select id="tpStrategySelect" class="setting-input tp-input">
+          <option value="simple" data-lang="simple_tp">Simple TP</option>
+          <option value="trailing" data-lang="trailing_tp">Trailing TP</option>
+          <option value="split" data-lang="split_tp">Split TP</option>
+        </select>
+      </div>
+
+      <!-- Simple TP Settings -->
+      <div id="simpleTpSettings" class="setting-item-row tp-setting">
+        <div class="setting-label" data-lang="take_profit_percent">Take Profit (%)</div>
+        <input type="number" id="simpleTpValue" min="0" max="1000" value="5" step="0.1" class="setting-input tp-input" />
+      </div>
+
+      <!-- Trailing TP Settings -->
+      <div id="trailingTpSettings" class="setting-item-row tp-setting" style="display: none;">
+        <div class="setting-label" data-lang="trailing_distance">Trailing Distance (%)</div>
+        <input type="number" id="trailingDistance" min="0" max="100" value="2" step="0.1" class="setting-input tp-input" />
+      </div>
+
+      <!-- Split TP Settings -->
+      <div id="splitTpSettings" class="setting-item-row tp-setting" style="display: none;">
+        <div class="setting-label" data-lang="split_tp_percent">Split TP (%)</div>
+        <div class="tp-inputs">
+          <input type="number" id="splitTp1" min="0" max="1000" value="3" step="0.1" class="setting-input tp-split" />
+          <input type="number" id="splitTp2" min="0" max="1000" value="6" step="0.1" class="setting-input tp-split" />
+          <input type="number" id="splitTp3" min="0" max="1000" value="10" step="0.1" class="setting-input tp-split" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Area -->
+    <div class="exchange-section">
+      <h3 data-lang="settings">Settings</h3>
+      
+      <!-- Language Settings -->
+      <div class="setting-item-row">
+        <div class="setting-label" data-lang="language">Language</div>
+        <select id="languageSelect" class="setting-input">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+        </select>
+      </div>
+      
+      <!-- Auto Refresh Settings -->
+      <div class="setting-item-row">
+        <div class="setting-label">
+          <span data-lang="auto_refresh">Auto Refresh</span>
+          <span id="autoRefreshCountdown" class="refresh-countdown" style="display: none;"></span>
+        </div>
+        <input type="number" id="autoRefreshInterval" min="0" max="100" value="0" step="1" class="setting-input" data-lang="auto_refresh_minutes" placeholder="0" />
       </div>
       
       <!-- Telegram Integration -->
       <div class="telegram-integration">
-        <h4>Telegram Integration</h4>
+        <div class="telegram-header">
+          <h4 data-lang="telegram_settings">Telegram Integration</h4>
+          <button id="testTelegramConnection" class="btn btn-test" data-lang="test">Test</button>
+        </div>
         
         <div class="input-group">
-          <label for="botToken">Bot Token:</label>
+          <label for="botToken" data-lang="bot_token">Bot Token:</label>
           <input type="password" id="botToken" class="telegram-input" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
         </div>
         
         <div class="input-group">
-          <label for="chatId">Chat ID:</label>
+          <label for="chatId" data-lang="chat_id">Chat ID:</label>
           <input type="text" id="chatId" class="telegram-input" placeholder="987654321">
         </div>
         
         <div class="input-group">
-          <label for="userSymbol">Trading Symbol:</label>
+          <label for="userSymbol" data-lang="trading_symbol">Trading Symbol:</label>
           <input type="text" id="userSymbol" class="telegram-input" placeholder="BTC" maxlength="10">
-        </div>
-        
-        <div class="telegram-controls">
-          <button id="testTelegramConnection" class="btn btn-test">Test Connection</button>
         </div>
         
         <div id="telegramStatusMessage" class="status-message"></div>
       </div>
-    </div>
-
-
-    <!-- Data Management Area -->
-    <div class="data-management-section">
-      <h3>Data Management</h3>
-      <div class="data-controls">
-        <button id="resetAllBtn" class="btn btn-reset">Reset All Data</button>
-        <button id="exportDataBtn" class="btn btn-export">Export Data</button>
-        <button id="importDataBtn" class="btn btn-import">Import Data</button>
+      
+      <!-- Data Management Buttons -->
+      <div class="extraction-controls">
+        <button id="exportDataBtn" class="btn btn-selector" data-lang="export_data">Export Data</button>
+        <button id="importDataBtn" class="btn btn-selector btn-price" data-lang="import_data">Import Data</button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
       </div>
-      <input type="file" id="importFileInput" accept=".json" style="display: none;">
     </div>
+
 
   </div>
 
+</div>
+
+  <script src="../utils/language.js"></script>
   <script src="../utils/telegram.js"></script>
   <script src="../utils/signalParser.js"></script>
   <script src="popup.js"></script>

@@ -4,21 +4,16 @@ chrome.runtime.sendMessage({
   action: 'contentScriptLoaded',
   url: window.location.href,
   timestamp: new Date().toISOString()
-}).catch(error => {
-  console.log('Background 통신 실패 (정상):', error.message);
+}).catch(() => {
+  // Background 통신 실패는 정상 (익스텐션 미로드 시)
 });
 
 // ============================================
 // 거래소 페이지 감지
 // ============================================
-console.log('=== 거래소 페이지 감지 ===');
 
 function detectExchange() {
-  const url = window.location.href.toLowerCase();
   const hostname = window.location.hostname.toLowerCase();
-  
-  console.log('현재 URL:', url);
-  console.log('현재 호스트:', hostname);
   
   // 거래소별 패턴 매칭
   if (hostname.includes('binance.com') || hostname.includes('binance.us') || hostname.includes('binance.kr')) {
@@ -36,26 +31,20 @@ function detectExchange() {
 
 // 현재 거래소 감지
 const currentExchange = detectExchange();
-console.log('감지된 거래소:', currentExchange);
 
 // ============================================
 // 자본금 추출 함수
 // ============================================
-console.log('=== 자본금 추출 기능 ===');
 
 // 자본금 추출 함수 (사용자 지정 셀렉터 사용)
 function extractBalance(selector) {
   if (!selector) {
-    console.log('자본금 셀렉터가 지정되지 않았습니다.');
     return null;
   }
-  
-  console.log(`자본금 추출 시도 (셀렉터: ${selector})`);
   
   const element = document.querySelector(selector);
   if (element) {
     const text = element.textContent || element.innerText;
-    console.log(`자본금 발견:`, text);
     return {
       exchange: currentExchange,
       balance: text.trim(),
@@ -64,18 +53,15 @@ function extractBalance(selector) {
     };
   }
   
-  console.log(`자본금 요소를 찾을 수 없습니다 (셀렉터: ${selector})`);
   return null;
 }
 
 // ============================================
 // Background/Popup과 통신
 // ============================================
-console.log('=== Content Script 통신 ===');
 
 // Background로부터 메시지 수신
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Content Script가 메시지 수신:', request);
   
   if (request.action === 'ping') {
     // Content Script가 주입되었는지 확인용
@@ -140,14 +126,12 @@ function extractPrice() {
 // ============================================
 // 요소 선택 기능
 // ============================================
-console.log('=== 요소 선택 기능 ===');
 
 let isElementSelectionMode = false;
 let originalCursor = '';
 
 // 요소 선택 모드 시작
 function startElementSelection() {
-  console.log('요소 선택 모드 시작');
   isElementSelectionMode = true;
   
   // 커서 변경
@@ -157,13 +141,10 @@ function startElementSelection() {
   // 모든 요소에 마우스 오버 이벤트 추가
   document.addEventListener('mouseover', handleMouseOver, true);
   document.addEventListener('click', handleElementClick, true);
-  
-  console.log('요소 선택 모드 활성화됨');
 }
 
 // 요소 선택 모드 중단
 function stopElementSelection() {
-  console.log('요소 선택 모드 중단');
   isElementSelectionMode = false;
   
   // 커서 복원
@@ -177,8 +158,6 @@ function stopElementSelection() {
   document.querySelectorAll('.element-selector-highlight').forEach(el => {
     el.classList.remove('element-selector-highlight');
   });
-  
-  console.log('요소 선택 모드 비활성화됨');
 }
 
 // 마우스 오버 이벤트 처리
@@ -208,8 +187,6 @@ function handleElementClick(event) {
   const selector = generateSelector(element);
   const text = element.textContent || element.innerText || '';
   
-  console.log('요소 선택됨:', { selector, text });
-  
   // 선택 모드 종료
   stopElementSelection();
   
@@ -218,8 +195,29 @@ function handleElementClick(event) {
     action: 'elementSelected',
     selector: selector,
     text: text.trim().substring(0, 100) // 텍스트 길이 제한
-  }).catch(error => {
-    console.log('Background 통신 실패 (정상):', error.message);
+  }).catch(() => {
+    // Background 통신 실패는 정상
+  });
+}
+
+// CSS 셀렉터 유효성 검증 함수
+function isValidSelector(selector) {
+  try {
+    document.querySelectorAll(selector);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// CSS 클래스명 필터링 (유효하지 않은 문자 제거)
+function filterValidClassNames(classNames) {
+  return classNames.filter(cls => {
+    const trimmed = cls.trim();
+    if (!trimmed) return false;
+    // CSS 셀렉터에서 유효하지 않은 문자 필터링
+    // 클래스명은 문자, 숫자, 하이픈, 언더스코어만 허용
+    return /^[a-zA-Z0-9_-]+$/.test(trimmed);
   });
 }
 
@@ -231,14 +229,15 @@ function generateSelector(element) {
   
   // ID가 있으면 우선 사용
   if (cleanElement.id) {
-    return `#${cleanElement.id}`;
+    const idSelector = `#${cleanElement.id}`;
+    if (isValidSelector(idSelector)) {
+      return idSelector;
+    }
   }
   
   // Long/Short 버튼의 경우 텍스트 기반으로 구분
   const elementText = element.textContent?.trim().toLowerCase();
   if (elementText && (elementText.includes('long') || elementText.includes('short'))) {
-    console.log(`🎯 Long/Short 버튼 감지: "${element.textContent.trim()}"`);
-    
     // 같은 클래스를 가진 버튼들 중에서 텍스트로 구분
     const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
     const sameClassButtons = allButtons.filter(btn => 
@@ -249,36 +248,46 @@ function generateSelector(element) {
     if (sameClassButtons.length > 1) {
       const index = sameClassButtons.indexOf(element);
       if (index !== -1) {
-        // nth-child 사용하여 정확한 버튼 선택
-        const baseSelector = `.${element.className.split(' ').join('.')}`;
-        console.log(`🔧 Long/Short 버튼 구분: ${baseSelector}:nth-child(${index + 1})`);
-        return `${baseSelector}:nth-child(${index + 1})`;
+        // 유효한 클래스명만 필터링
+        const validClasses = filterValidClassNames(element.className.split(' '));
+        if (validClasses.length > 0) {
+          const baseSelector = `.${validClasses.join('.')}`;
+          const nthSelector = `${baseSelector}:nth-child(${index + 1})`;
+          if (isValidSelector(nthSelector)) {
+            return nthSelector;
+          }
+        }
       }
     }
   }
   
   // 클래스명에서 하이라이트 클래스 제거 후 사용
   if (cleanElement.className) {
-    const classes = cleanElement.className.split(' ')
-      .filter(cls => cls.trim() && !cls.includes('element-selector-highlight'));
+    const validClasses = filterValidClassNames(
+      cleanElement.className.split(' ')
+        .filter(cls => cls.trim() && !cls.includes('element-selector-highlight'))
+    );
     
-    if (classes.length > 0) {
-      const selector = `.${classes.join('.')}`;
+    if (validClasses.length > 0) {
+      const selector = `.${validClasses.join('.')}`;
       
-      // 셀렉터가 유일한지 확인
-      const elements = document.querySelectorAll(selector);
-      if (elements.length === 1) {
-        return selector;
-      } else if (elements.length > 1) {
-        // 여러 요소가 있으면 nth-of-type 추가
-        const index = Array.from(elements).indexOf(element);
-        if (index !== -1) {
-          console.log(`🔧 중복 셀렉터 구분: ${selector}:nth-of-type(${index + 1})`);
-          return `${selector}:nth-of-type(${index + 1})`;
+      // 셀렉터 유효성 검증
+      if (isValidSelector(selector)) {
+        // 셀렉터가 유일한지 확인
+        const elements = document.querySelectorAll(selector);
+        if (elements.length === 1) {
+          return selector;
+        } else if (elements.length > 1) {
+          // 여러 요소가 있으면 nth-of-type 추가
+          const index = Array.from(elements).indexOf(element);
+          if (index !== -1) {
+            const nthSelector = `${selector}:nth-of-type(${index + 1})`;
+            if (isValidSelector(nthSelector)) {
+              return nthSelector;
+            }
+          }
         }
       }
-      
-      return selector;
     }
   }
   
@@ -296,11 +305,13 @@ function generateSelector(element) {
     
     // 클래스가 있으면 추가 (Long/Short 구분에 중요한 클래스 우선)
     if (currentElement.className) {
-      const classes = currentElement.className.split(' ')
-        .filter(cls => cls.trim() && !cls.includes('element-selector-highlight'));
+      const validClasses = filterValidClassNames(
+        currentElement.className.split(' ')
+          .filter(cls => cls.trim() && !cls.includes('element-selector-highlight'))
+      );
       
       // Long/Short 구분에 중요한 클래스들 우선 선택
-      const importantClasses = classes.filter(c => 
+      const importantClasses = validClasses.filter(c => 
         c.includes('80d6b0c8') || c.includes('c1f4796') || // Long/Short 구분 클래스
         c.includes('button') || c.includes('btn') ||
         c.includes('gui_') || // Gate.io 특정 클래스
@@ -309,10 +320,18 @@ function generateSelector(element) {
       
       if (importantClasses.length > 0) {
         // 중요한 클래스들을 모두 포함 (Long/Short 구분을 위해)
-        part += '.' + importantClasses.join('.');
-      } else if (classes.length > 0) {
+        const classSelector = '.' + importantClasses.join('.');
+        const testSelector = part + classSelector;
+        if (isValidSelector(testSelector)) {
+          part += classSelector;
+        }
+      } else if (validClasses.length > 0) {
         // 중요한 클래스가 없으면 처음 3개만 사용
-        part += '.' + classes.slice(0, 3).join('.');
+        const classSelector = '.' + validClasses.slice(0, 3).join('.');
+        const testSelector = part + classSelector;
+        if (isValidSelector(testSelector)) {
+          part += classSelector;
+        }
       }
     }
     
@@ -339,7 +358,12 @@ function generateSelector(element) {
     selector = selectorParts.slice(-3).join(' > ');
   }
   
-  console.log(`🔧 생성된 셀렉터: ${selector.substring(0, 100)}${selector.length > 100 ? '...' : ''}`);
+  // 최종 셀렉터 유효성 검증
+  if (!isValidSelector(selector)) {
+    // 유효하지 않으면 태그명만 반환
+    return tagName;
+  }
+  
   return selector;
 }
 
@@ -358,11 +382,9 @@ document.head.appendChild(style);
 // 페이지 로드 완료 후 Background에 알림
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('페이지 로드 완료');
     notifyBackground();
   });
 } else {
-  console.log('페이지 이미 로드됨');
   notifyBackground();
 }
 
@@ -372,15 +394,14 @@ function notifyBackground() {
     exchange: currentExchange,
     url: window.location.href,
     title: document.title
-  }).catch(error => {
-    console.log('Background 통신 실패 (정상):', error.message);
+  }).catch(() => {
+    // Background 통신 실패는 정상
   });
 }
 
 // ============================================
 // 매크로 녹화 시스템
 // ============================================
-console.log('=== 매크로 녹화 시스템 ===');
 
 let isMacroRecording = false;
 let currentMacroType = null; // 'long' or 'short'
@@ -397,8 +418,6 @@ let savedMacros = {
 
 // 매크로 녹화 시작 (성능 최적화)
 function startMacroRecording(macroType) {
-  console.log(`매크로 녹화 시작: ${macroType}`);
-  
   isMacroRecording = true;
   currentMacroType = macroType;
   recordedActions = [];
@@ -432,15 +451,11 @@ function startMacroRecording(macroType) {
   
   // 시각적 피드백
   showMacroRecordingIndicator();
-  
-  console.log(`${macroType} 매크로 녹화 활성화됨`);
 }
 
 // 매크로 녹화 중단 (성능 최적화)
 function stopMacroRecording() {
   if (!isMacroRecording) return;
-  
-  console.log(`매크로 녹화 중단: ${currentMacroType}`);
   
   // AbortController로 모든 이벤트 한번에 제거
   if (macroEventController) {
@@ -457,15 +472,14 @@ function stopMacroRecording() {
   // 녹화된 액션 저장
   if (recordedActions.length > 0) {
     savedMacros[currentMacroType] = [...recordedActions];
-    console.log(`${currentMacroType} 매크로 저장됨: ${recordedActions.length}개 액션`);
     
     // Background에 매크로 저장 알림
     chrome.runtime.sendMessage({
       action: 'macroRecorded',
       macroType: currentMacroType,
       actions: recordedActions
-    }).catch(error => {
-      console.log('Background 통신 실패 (정상):', error.message);
+    }).catch(() => {
+      // Background 통신 실패는 정상
     });
   }
   
@@ -514,13 +528,6 @@ function recordClick(event) {
   };
   
   recordedActions.push(action);
-  
-  console.log(`🖱️ 클릭 녹화됨 [${clickType}]: "${elementInfo.text}" -> ${selector}`);
-  console.log(`   - 키워드: ${action.keywords.join(', ')}`);
-  console.log(`   - 위치: (${action.position.x}, ${action.position.y})`);
-  
-  if (elementInfo.id) console.log(`   - ID: ${elementInfo.id}`);
-  if (elementInfo.className) console.log(`   - Class: ${elementInfo.className}`);
 }
 
 // 클릭 유형 분석 함수
@@ -615,9 +622,6 @@ function recordInput(event) {
       };
       
       recordedActions.push(action);
-      console.log(`🎯 Amount 필드 위치 저장됨: ${selector}`);
-      console.log(`   - 키워드: ${action.keywords.join(', ')}`);
-      console.log(`   - 위치: (${action.position.x}, ${action.position.y})`);
     }
   } else {
     // 일반 입력 필드는 기존 방식으로 처리 (하지만 연속 입력은 마지막 값만)
@@ -640,10 +644,8 @@ function recordInput(event) {
     if (existingInputAction !== -1) {
       // 기존 입력 액션 업데이트 (마지막 값으로)
       recordedActions[existingInputAction] = action;
-      console.log(`📝 일반 입력 업데이트됨: ${value} -> ${selector}`);
     } else {
       recordedActions.push(action);
-      console.log(`📝 일반 입력 녹화됨: ${value} -> ${selector}`);
     }
   }
 }
@@ -677,7 +679,6 @@ function isLikelyAmountField(element, value) {
   // 제외 키워드가 있으면 Amount 필드가 아님
   for (const keyword of excludeKeywords) {
     if (text.includes(keyword)) {
-      console.log(`❌ Amount 필드 제외: ${keyword} 키워드 발견`);
       return false;
     }
   }
@@ -685,7 +686,6 @@ function isLikelyAmountField(element, value) {
   // Amount 키워드가 있으면 Amount 필드
   for (const keyword of amountKeywords) {
     if (text.includes(keyword)) {
-      console.log(`✅ Amount 필드 확인: ${keyword} 키워드 발견`);
       return true;
     }
   }
@@ -693,17 +693,14 @@ function isLikelyAmountField(element, value) {
   // 값의 크기로 판단 (일반적으로 Amount는 소수점이 있는 작은 값)
   const numValue = parseFloat(value);
   if (numValue > 0 && numValue < 1000 && value.includes('.')) {
-    console.log(`✅ Amount 필드 추정: 소수점 포함 작은 값 (${value})`);
     return true;
   }
   
   // 레버리지 같은 정수값은 제외
   if (Number.isInteger(numValue) && numValue >= 1 && numValue <= 125) {
-    console.log(`❌ Amount 필드 제외: 레버리지 추정값 (${value})`);
     return false;
   }
   
-  console.log(`❓ Amount 필드 불확실: ${value}`);
   return false;
 }
 
@@ -773,7 +770,6 @@ function recordChange(event) {
   };
   
   recordedActions.push(action);
-  console.log('변경 녹화됨:', action);
 }
 
 // 키보드 이벤트 녹화 (Enter, Tab 등)
@@ -795,7 +791,6 @@ function recordKeydown(event) {
     };
     
     recordedActions.push(action);
-    console.log('키 입력 녹화됨:', action);
   }
 }
 
@@ -929,17 +924,13 @@ function findElementByText(texts, selector = '*') {
 
 // 하이브리드 거래 실행 함수 (매크로 + 스마트 탐지)
 async function executeSmartTrade(type, amount) {
-  console.log(`🎯 하이브리드 거래 실행: ${type}, Amount: ${amount}`);
-  
   try {
     // 1. 저장된 매크로에서 요소 정보 가져오기
     const macroData = await getStoredMacroData(type);
     
     if (macroData && macroData.length > 0) {
-      console.log(`📋 저장된 매크로 사용: ${macroData.length}개 액션`);
       return await executeHybridMacro(macroData, amount, type);
     } else {
-      console.log(`📋 저장된 매크로 없음, 스마트 탐지 사용`);
       return await executeFallbackSmartTrade(type, amount);
     }
     
@@ -949,16 +940,113 @@ async function executeSmartTrade(type, amount) {
   }
 }
 
+// ================================
+// SL 모달 기반 자동 설정 (Gate.io)
+// ================================
+async function setStopLossViaModal(slPrice) {
+  try {
+    const click = async (el) => el && el.click();
+    const setValue = async (input, val) => {
+      if (!input) return;
+      input.focus();
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.value = String(val);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const waitFor = (predicate, timeout = 4000, interval = 100) => new Promise((resolve, reject) => {
+      const start = Date.now();
+      const timer = setInterval(() => {
+        try {
+          const el = predicate();
+          if (el) {
+            clearInterval(timer);
+            resolve(el);
+          } else if (Date.now() - start > timeout) {
+            clearInterval(timer);
+            reject(new Error('waitFor timeout'));
+          }
+        } catch (e) {
+          clearInterval(timer);
+          reject(e);
+        }
+      }, interval);
+    });
+    const q = (sel) => document.querySelector(sel);
+    const findByText = (selector, regex) => {
+      const nodes = document.querySelectorAll(selector);
+      for (const n of nodes) {
+        const t = (n.textContent || '').trim();
+        if (regex.test(t)) return n;
+      }
+      return null;
+    };
+
+    // 1) SL 설정 버튼 찾기 (여러 후보)
+    const slButtonCandidates = [
+      '[data-testid*="sl-button"]',
+      '[aria-label*="Stop" i]',
+      '[aria-label*="손절" i]',
+      'button',
+    ];
+    let slButton = null;
+    for (const sel of slButtonCandidates) {
+      slButton = q(sel);
+      if (slButton && /stop|손절|sl/i.test(slButton.textContent || slButton.getAttribute('aria-label') || '')) break;
+      slButton = null;
+    }
+    if (!slButton) slButton = findByText('button, [role="button"]', /Stop\s*Loss|SL|손절/i);
+    if (!slButton) throw new Error('SL 버튼을 찾을 수 없습니다.');
+    await click(slButton);
+
+    // 2) 모달 대기
+    const modal = await waitFor(() => q('[role="dialog"], [data-testid*="modal"], .mantine-Modal-root'));
+
+    // 3) 입력 필드 찾기
+    const inputCandidates = [
+      'input[inputmode="decimal"]',
+      'input[type="number"]',
+      'input[placeholder*="SL" i]',
+      'input'
+    ];
+    let slInput = null;
+    for (const sel of inputCandidates) {
+      const maybe = modal.querySelector(sel);
+      if (maybe) { slInput = maybe; break; }
+    }
+    if (!slInput) throw new Error('SL 입력 필드를 찾을 수 없습니다.');
+    await setValue(slInput, slPrice);
+
+    // 4) 확인/적용 버튼 클릭
+    let confirmBtn = null;
+    const confirmCandidates = [
+      '[data-testid*="confirm"]',
+      '[aria-label="Confirm" i]',
+      'button'
+    ];
+    for (const sel of confirmCandidates) {
+      const maybe = Array.from(modal.querySelectorAll(sel)).find(b => /confirm|apply|적용|확인/i.test(b.textContent || b.getAttribute('aria-label') || ''));
+      if (maybe) { confirmBtn = maybe; break; }
+    }
+    if (!confirmBtn) confirmBtn = findByText('button, [role="button"]', /Confirm|Apply|적용|확인/i);
+    if (!confirmBtn) throw new Error('SL 확인 버튼을 찾을 수 없습니다.');
+    await click(confirmBtn);
+
+    return { success: true };
+  } catch (e) {
+    console.error('❌ SL 모달 플로우 실패:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // 하이브리드 매크로 실행 (셀렉터 우선, 스마트 탐지 백업)
 async function executeHybridMacro(actions, amount, macroType) {
-  console.log(`🔄 하이브리드 매크로 실행 시작`);
-  
   // 현재 실행 중인 매크로 타입 설정
   currentExecutingMacroType = macroType;
   
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
-    console.log(`${i + 1}/${actions.length}: ${action.type} 실행 중...`);
     
     try {
       let element = null;
@@ -973,32 +1061,21 @@ async function executeHybridMacro(actions, amount, macroType) {
             const expectedText = action.clickType === 'LONG_BUTTON' ? 'long' : 'short';
             
             if (!elementText.includes(expectedText)) {
-              console.warn(`⚠️ 텍스트 불일치: 예상="${expectedText}", 실제="${elementText}"`);
-              console.warn(`⚠️ 잘못된 버튼 선택됨 - 스마트 탐지로 재시도`);
               element = null; // 텍스트가 맞지 않으면 스마트 탐지로 넘어감
-            } else {
-              console.log(`✅ 셀렉터로 올바른 ${expectedText.toUpperCase()} 버튼 발견`);
             }
-          } else {
-            console.log(`✅ 셀렉터로 요소 발견: ${action.selector}`);
           }
         }
       } catch (selectorError) {
-        console.log(`❌ 셀렉터 실패: ${selectorError.message}`);
+        // 셀렉터 실패는 무시하고 스마트 탐지로 넘어감
       }
       
       // 2단계: 셀렉터 실패 시 스마트 탐지
       if (!element && action.keywords && action.keywords.length > 0) {
-        console.log(`🔍 스마트 탐지 시도: ${action.keywords.join(', ')}`);
         element = findElementByHybridSearch(action);
-        if (element) {
-          console.log(`✅ 스마트 탐지로 요소 발견`);
-        }
       }
       
       // 3단계: 요소를 찾지 못한 경우
       if (!element) {
-        console.warn(`⚠️ 요소를 찾을 수 없음: ${action.selector}`);
         continue;
       }
       
@@ -1012,8 +1089,6 @@ async function executeHybridMacro(actions, amount, macroType) {
     }
   }
   
-  console.log(`✅ 하이브리드 매크로 실행 완료`);
-  
   // 매크로 타입 초기화
   currentExecutingMacroType = null;
   
@@ -1022,9 +1097,6 @@ async function executeHybridMacro(actions, amount, macroType) {
 
 // 하이브리드 검색으로 요소 찾기 (개선된 정확도)
 function findElementByHybridSearch(action) {
-  console.log(`🔍 하이브리드 검색 시작: ${action.clickType || action.type}`);
-  console.log(`   - 찾는 키워드: ${action.keywords.join(', ')}`);
-  
   // 키워드 기반 검색
   const allElements = document.querySelectorAll('button, input, [role="button"], div[class*="button"]');
   const candidates = [];
@@ -1033,9 +1105,8 @@ function findElementByHybridSearch(action) {
     const elementKeywords = extractElementKeywords(element);
     const elementText = element.textContent?.toLowerCase() || '';
     
-    // 정확한 키워드 매칭 확인 (부분 매칭에서 정확 매칭으로 개선)
+    // 정확한 키워드 매칭 확인
     let matchScore = 0;
-    let matchedKeywords = [];
     
     for (const keyword of action.keywords) {
       const keywordLower = keyword.toLowerCase();
@@ -1043,22 +1114,18 @@ function findElementByHybridSearch(action) {
       // 텍스트 정확 매칭 (우선순위 높음)
       if (elementText === keywordLower) {
         matchScore += 10;
-        matchedKeywords.push(`TEXT_EXACT:${keyword}`);
       }
       // 텍스트 포함 매칭
       else if (elementText.includes(keywordLower)) {
         matchScore += 5;
-        matchedKeywords.push(`TEXT_CONTAINS:${keyword}`);
       }
       
       // 키워드 정확 매칭
       for (const ek of elementKeywords) {
         if (ek.toLowerCase() === keywordLower) {
           matchScore += 8;
-          matchedKeywords.push(`KEYWORD_EXACT:${keyword}`);
         } else if (ek.toLowerCase().includes(keywordLower)) {
           matchScore += 3;
-          matchedKeywords.push(`KEYWORD_CONTAINS:${keyword}`);
         }
       }
     }
@@ -1067,7 +1134,6 @@ function findElementByHybridSearch(action) {
       candidates.push({
         element,
         matchScore,
-        matchedKeywords,
         text: elementText,
         position: getElementPosition(element)
       });
@@ -1075,38 +1141,15 @@ function findElementByHybridSearch(action) {
   }
   
   if (candidates.length === 0) {
-    console.log(`❌ 매칭되는 요소 없음`);
     return null;
   }
   
   // 매치 스코어 순으로 정렬
   candidates.sort((a, b) => b.matchScore - a.matchScore);
   
-  console.log(`🎯 후보 요소들:`);
-  candidates.slice(0, 3).forEach((candidate, index) => {
-    console.log(`   ${index + 1}. "${candidate.text}" (점수: ${candidate.matchScore})`);
-    console.log(`      매칭: ${candidate.matchedKeywords.join(', ')}`);
-  });
-  
   // 최고 점수 요소 선택
   const bestCandidate = candidates[0];
   
-  // 위치 정보로 최종 검증 (있는 경우)
-  if (action.position) {
-    const distance = Math.sqrt(
-      Math.pow(bestCandidate.position.x - action.position.x, 2) + 
-      Math.pow(bestCandidate.position.y - action.position.y, 2)
-    );
-    
-    console.log(`📍 위치 검증: 거리 ${Math.round(distance)}px`);
-    
-    // 위치가 너무 많이 변경된 경우 경고하지만 실행은 계속
-    if (distance > 100) {
-      console.warn(`⚠️ 위치 변경됨: ${Math.round(distance)}px (계속 진행)`);
-    }
-  }
-  
-  console.log(`✅ 선택된 요소: "${bestCandidate.text}" (점수: ${bestCandidate.matchScore})`);
   return bestCandidate.element;
 }
 
@@ -1114,26 +1157,7 @@ function findElementByHybridSearch(action) {
 async function executeHybridAction(action, element, amount) {
   switch (action.type) {
     case 'click':
-      // Open/Close 탭 검증 (Gate.io Hedge 모드)
-      if (action.clickType === 'OPEN_TAB' || action.clickType === 'CLOSE_TAB') {
-        console.log(`📋 ${action.clickType} 클릭 - 포지션 ${action.clickType === 'OPEN_TAB' ? '진입' : '종료'} 모드`);
-        
-        // Open 탭인지 확인 (Long/Short 매크로 모두 Open 탭 필요)
-        if (action.clickType === 'CLOSE_TAB') {
-          console.warn(`⚠️ Close 탭 클릭됨 - 포지션 종료 모드로 전환`);
-        }
-      }
-      
       element.click();
-      console.log(`🖱️ 클릭 실행: ${action.clickType || 'CLICK'}`);
-      
-      // 중요한 클릭인 경우 추가 확인
-      if (action.clickType === 'OPEN_TAB' || action.clickType === 'CLOSE_TAB') {
-        console.log(`⚠️  중요: ${action.clickType} 클릭됨!`);
-      }
-      if (action.clickType === 'LONG_BUTTON' || action.clickType === 'SHORT_BUTTON') {
-        console.log(`⚠️  중요: ${action.clickType} 클릭됨!`);
-      }
       break;
       
     case 'amountField':
@@ -1142,7 +1166,6 @@ async function executeHybridAction(action, element, amount) {
       element.value = amount;
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log(`🎯 Amount 입력: ${amount}`);
       break;
       
     case 'input':
@@ -1151,18 +1174,13 @@ async function executeHybridAction(action, element, amount) {
       element.value = action.value;
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log(`📝 입력 실행: ${action.value}`);
       break;
       
     case 'keydown':
       // 키 입력
       const keyEvent = new KeyboardEvent('keydown', { key: action.key, bubbles: true });
       element.dispatchEvent(keyEvent);
-      console.log(`⌨️ 키 입력: ${action.key}`);
       break;
-      
-    default:
-      console.log(`❓ 알 수 없는 액션 타입: ${action.type}`);
   }
 }
 

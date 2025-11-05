@@ -33,6 +33,12 @@ body {
   margin-bottom: 10px;
 }
 
+.status-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .status-section h2 {
   font-size: 18px;
   margin: 0;
@@ -82,6 +88,8 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #666;
+  min-width: 120px;
+  flex-shrink: 0;
 }
 
 .assets-value {
@@ -89,6 +97,25 @@ body {
   font-weight: 600;
   color: #2196f3;
   text-align: right;
+  flex: 1;
+  min-width: 0;
+}
+
+.price-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.sl-price-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #f44336;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 /* Exchange Selection Area */
@@ -97,6 +124,67 @@ body {
   gap: 10px;
   margin-bottom: 10px;
   align-items: center;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 26px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #4caf50;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  margin-right: 10px;
+  white-space: nowrap;
+}
+
+.toggle-switch input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Button Area */
@@ -148,15 +236,15 @@ body {
 /* Exchange Selection Area */
 .exchange-section {
   background-color: white;
-  padding: 15px;
+  padding: 12px; /* 15px → 12px로 줄임 */
   border-radius: 8px;
   margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .exchange-section h3 {
-  font-size: 16px;
-  margin-bottom: 10px;
+  font-size: 15px; /* 16px → 15px로 약간 줄임 */
+  margin-bottom: 8px; /* 10px → 8px로 줄임 */
   color: #333;
 }
 
@@ -167,8 +255,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  gap: 15px;
+  margin-bottom: 8px; /* 12px → 8px로 간격 줄임 */
+  gap: 12px; /* 15px → 12px로 간격 줄임 */
 }
 
 .setting-item-row:last-child {
@@ -176,22 +264,34 @@ body {
 }
 
 .setting-label {
-  font-size: 14px;
+  font-size: 13px; /* 14px → 13px로 약간 줄임 */
   color: #666;
   font-weight: 500;
-  min-width: 100px;
+  min-width: 90px; /* 100px → 90px로 줄임 */
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.refresh-countdown {
+  font-size: 11px;
+  color: #2196f3;
+  font-weight: 600;
+  margin-left: 5px;
 }
 
 .setting-input {
   flex: 1;
-  max-width: 150px;
-  padding: 8px 12px;
+  max-width: 140px; /* 적절한 너비로 제한 */
+  padding: 6px 12px; /* 상하 패딩 줄임: 10px → 6px */
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px; /* 14px → 13px로 약간 줄임 */
   text-align: center;
   background-color: white;
+  height: auto; /* 자동 높이 */
+  min-height: 28px; /* 최소 높이 설정 */
 }
 
 .setting-input:focus {
@@ -201,13 +301,15 @@ body {
 
 .setting-select {
   flex: 1;
-  max-width: 150px;
-  padding: 8px 12px;
+  max-width: 140px; /* 적절한 너비로 제한 */
+  padding: 6px 12px; /* 상하 패딩 줄임: 10px → 6px */
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px; /* 14px → 13px로 약간 줄임 */
   background-color: white;
   cursor: pointer;
+  height: auto; /* 자동 높이 */
+  min-height: 28px; /* 최소 높이 설정 */
 }
 
 .setting-select:focus {
@@ -279,7 +381,9 @@ body {
 }
 
 .btn-price:hover:not(:disabled) {
-  background-color: #1976d2;
+  background-color: #f5f5f5;
+  border-color: #2196f3;
+  color: #2196f3;
 }
 
 /* Take Profit Settings */
@@ -302,8 +406,9 @@ body {
 .extraction-controls {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
 }
 
 .extraction-controls .btn {
@@ -312,13 +417,15 @@ body {
   padding: 8px 10px;
   transition: all 0.3s ease;
   /* 기본 상태: 테두리만 */
-  background-color: transparent;
-  border: 2px solid #2196f3;
-  color: #2196f3;
+  background-color: transparent !important;
+  border: 2px solid #2196f3 !important;
+  color: #2196f3 !important;
 }
 
 .extraction-controls .btn:hover:not(:disabled) {
-  background-color: #f5f5f5;
+  background-color: #f5f5f5 !important;
+  border-color: #2196f3 !important;
+  color: #2196f3 !important;
 }
 
 /* 데이터가 있을 때 채워진 스타일 */
@@ -330,6 +437,7 @@ body {
 
 .extraction-controls .btn.has-data:hover:not(:disabled) {
   background-color: #1976d2;
+  border-color: #1976d2;
 }
 
 /* Default state: outline only */
@@ -340,8 +448,8 @@ body {
 }
 
 .btn-selector:hover:not(:disabled) {
-  border-color: #999 !important;
-  color: #333 !important;
+  border-color: #2196f3 !important;
+  color: #2196f3 !important;
   background-color: #f5f5f5 !important;
 }
 
@@ -357,18 +465,71 @@ body {
   color: white !important;
 }
 
+
 /* Manual Trading Controls */
-.manual-controls {
+/* Trading Controls Section (Manual + Record) */
+.trading-controls-section {
+  margin-bottom: 0;
+}
+
+.trading-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.trading-header h3 {
+  margin: 0;
+}
+
+.trading-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trading-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.trading-controls-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trading-controls-row {
   display: flex;
   gap: 10px;
+}
+
+.trading-controls-row .btn {
+  flex: 1;
+}
+
+.manual-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
 .btn-manual {
   flex: 1;
-  font-size: 14px;
-  padding: 12px 10px;
+  font-size: 12px;
+  padding: 8px 10px;
   transition: all 0.3s ease;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 36px;
+  line-height: 1.4;
 }
 
 .btn-manual.btn-long {
@@ -389,6 +550,24 @@ body {
   background-color: #d32f2f;
 }
 
+.btn-manual.btn-sl {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-manual.btn-sl:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.btn-manual.btn-close {
+  background-color: #ff5722;
+  color: white;
+}
+
+.btn-manual.btn-close:hover:not(:disabled) {
+  background-color: #e64a19;
+}
+
 /* Macro Recording Controls */
 .macro-controls {
   display: flex;
@@ -404,12 +583,6 @@ body {
   margin-bottom: 10px;
 }
 
-/* Take Profit Controls */
-.tp-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
 
 .btn-macro {
   flex: 1;
@@ -419,6 +592,12 @@ body {
   /* 기본 상태: 테두리만 */
   background-color: transparent;
   color: #666;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 36px;
+  line-height: 1.4;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .btn-macro.btn-long {
@@ -436,6 +615,40 @@ body {
 }
 
 .btn-macro.btn-short:hover:not(:disabled) {
+  background-color: #f5f5f5;
+}
+
+.btn-sl-close {
+  flex: 1;
+  font-size: 12px;
+  padding: 8px 10px;
+  transition: all 0.3s ease;
+  /* 기본 상태: 테두리만 */
+  background-color: transparent;
+  color: #666;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 36px;
+  line-height: 1.4;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-sl-close.btn-sl {
+  border: 2px solid #f44336;
+  color: #f44336;
+}
+
+.btn-sl-close.btn-sl:hover:not(:disabled) {
+  background-color: #f5f5f5;
+}
+
+.btn-sl-close.btn-close {
+  border: 2px solid #ff5722;
+  color: #ff5722;
+}
+
+.btn-sl-close.btn-close:hover:not(:disabled) {
   background-color: #f5f5f5;
 }
 
@@ -458,6 +671,27 @@ body {
 
 .btn-macro.has-macro.btn-short:hover:not(:disabled) {
   background-color: #d32f2f;
+}
+
+/* SL과 Close 버튼이 매크로가 저장되었을 때 채워진 스타일 */
+.btn-sl-close.has-macro.btn-sl {
+  background-color: #f44336;
+  color: white;
+  border: 2px solid #f44336;
+}
+
+.btn-sl-close.has-macro.btn-sl:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.btn-sl-close.has-macro.btn-close {
+  background-color: #ff5722;
+  color: white;
+  border: 2px solid #ff5722;
+}
+
+.btn-sl-close.has-macro.btn-close:hover:not(:disabled) {
+  background-color: #e64a19;
 }
 
 /* SL/Close Button Styles */
@@ -510,118 +744,95 @@ body {
   background-color: #d32f2f;
 }
 
-/* TP Button Styles */
-.btn-tp {
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-  transition: all 0.3s ease;
-  /* 기본 상태: 테두리만 */
-  background-color: transparent;
-  color: #666;
+
+/* Stop Loss & Take Profit Color Coding */
+.sl-setting {
+  border-left: 4px solid #f44336;
+  padding-left: 12px;
+  background: rgba(244, 67, 54, 0.05);
+  border-radius: 4px;
 }
 
-.btn-tp.btn-tp1 {
-  border: 2px solid #4caf50;
-  color: #4caf50;
+.sl-setting .setting-label {
+  color: #d32f2f;
+  font-weight: 500;
 }
 
-.btn-tp.btn-tp1:hover:not(:disabled) {
-  background-color: #f5f5f5;
+.sl-input {
+  border: 1px solid #f44336 !important;
 }
 
-.btn-tp.btn-tp2 {
-  border: 2px solid #2196f3;
-  color: #2196f3;
+.sl-input:focus {
+  border-color: #d32f2f !important;
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2) !important;
 }
 
-.btn-tp.btn-tp2:hover:not(:disabled) {
-  background-color: #f5f5f5;
+.tp-setting {
+  border-left: 4px solid #4caf50;
+  padding-left: 12px;
+  background: rgba(76, 175, 80, 0.05);
+  border-radius: 4px;
 }
 
-/* TP 매크로가 저장되었을 때 채워진 스타일 */
-.btn-tp.has-macro.btn-tp1 {
-  background-color: #4caf50;
-  color: white;
-  border: 2px solid #4caf50;
+.tp-setting .setting-label {
+  color: #388e3c;
+  font-weight: 500;
 }
 
-.btn-tp.has-macro.btn-tp1:hover:not(:disabled) {
-  background-color: #388e3c;
+.tp-input {
+  border: 1px solid #4caf50 !important;
 }
 
-.btn-tp.has-macro.btn-tp2 {
-  background-color: #2196f3;
-  color: white;
-  border: 2px solid #2196f3;
+.tp-input:focus {
+  border-color: #388e3c !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
 }
 
-.btn-tp.has-macro.btn-tp2:hover:not(:disabled) {
-  background-color: #1976d2;
+/* Remove number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-/* Data Management Area */
-.data-management-section {
-  background-color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
-.data-management-section h3 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.data-controls {
+/* Split Input Styles */
+.position-inputs, .tp-inputs {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
-.btn-reset {
-  flex: 1;
-  min-width: 80px;
-  font-size: 12px;
-  padding: 8px 6px;
-  background-color: #ff5722;
-  color: white;
-  transition: all 0.3s ease;
+.position-split, .tp-split {
+  width: 44px !important;
+  max-width: 44px !important;
+  padding: 8px 4px !important;
+  font-size: 12px !important;
+  text-align: center;
 }
 
-.btn-reset:hover:not(:disabled) {
-  background-color: #e64a19;
+.position-split {
+  border: 1px solid #ddd !important;
 }
 
-.btn-export {
-  flex: 1;
-  min-width: 80px;
-  font-size: 12px;
-  padding: 8px 6px;
-  background-color: #2196f3;
-  color: white;
-  transition: all 0.3s ease;
+.position-split:focus {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2) !important;
 }
 
-.btn-export:hover:not(:disabled) {
-  background-color: #1976d2;
+.tp-split {
+  border: 1px solid #4caf50 !important;
 }
 
-.btn-import {
-  flex: 1;
-  min-width: 80px;
-  font-size: 12px;
-  padding: 8px 6px;
-  background-color: #4caf50;
-  color: white;
-  transition: all 0.3s ease;
+.tp-split:focus {
+  border-color: #388e3c !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
 }
 
-.btn-import:hover:not(:disabled) {
-  background-color: #388e3c;
-}
+
 
 /* Extracted Data Display Area */
 .data-display-section {
@@ -716,8 +927,15 @@ body {
   border: 1px solid #e9ecef;
 }
 
+.telegram-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .telegram-integration h4 {
-  margin: 0 0 12px 0;
+  margin: 0;
   font-size: 14px;
   color: #495057;
   font-weight: 600;
@@ -751,24 +969,32 @@ body {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-.telegram-controls {
-  margin-top: 10px;
-}
-
 .btn-test {
-  background: #6c757d;
+  background-color: #6c757d;
   color: white;
   font-size: 11px;
-  padding: 6px 12px;
+  padding: 4px 8px;
+  width: auto !important;
+  height: auto;
+  white-space: nowrap;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
+  transition: background-color 0.3s ease;
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+  max-width: none !important;
 }
 
-.btn-test:hover {
-  background: #5a6268;
+.btn-test:hover:not(:disabled) {
+  background-color: #5a6268;
 }
+
+.btn-test:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 
 .status-message {
   padding: 8px 12px;

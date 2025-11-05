@@ -8,7 +8,8 @@
     "tabs",
     "storage",
     "sidePanel",
-    "scripting"
+    "scripting",
+    "tabCapture"
   ],
   "action": {
     "default_title": "Crypto Trading Bot"

@@ -1,17 +1,12 @@
 // DOM 요소 가져오기
-const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
-const statusDot = document.querySelector('.status-dot');
-const statusText = document.querySelector('.status-text');
+const tradingToggle = document.getElementById('tradingToggle');
 const exchangeSelect = document.getElementById('exchangeSelect');
 const goToExchangeBtn = document.getElementById('goToExchangeBtn');
 const leverageValueInput = document.getElementById('leverageValue');
-// const tradingModeSelect = document.getElementById('tradingMode'); // 제거됨
-const positionValueInput = document.getElementById('positionValue');
+const tradingModeSelect = document.getElementById('tradingModeSelect');
 const stoplossValueInput = document.getElementById('stoplossValue');
 const tp1ValueInput = document.getElementById('tp1Value');
 const tp2ValueInput = document.getElementById('tp2Value');
-const slRecordBtn = document.getElementById('slRecordBtn');
 const closeRecordBtn = document.getElementById('closeRecordBtn');
 const tp1RecordBtn = document.getElementById('tp1RecordBtn');
 const tp2RecordBtn = document.getElementById('tp2RecordBtn');
@@ -21,19 +16,27 @@ const longRecordBtn = document.getElementById('longRecordBtn');
 const shortRecordBtn = document.getElementById('shortRecordBtn');
 const manualLongBtn = document.getElementById('manualLongBtn');
 const manualShortBtn = document.getElementById('manualShortBtn');
-const resetAllBtn = document.getElementById('resetAllBtn');
+const manualCloseBtn = document.getElementById('manualCloseBtn');
+const recordToggle = document.getElementById('recordToggle');
+const autoRefreshInterval = document.getElementById('autoRefreshInterval');
+const autoRefreshCountdown = document.getElementById('autoRefreshCountdown');
+// const resetAllBtn = document.getElementById('resetAllBtn'); // Removed
 const exportDataBtn = document.getElementById('exportDataBtn');
 const importDataBtn = document.getElementById('importDataBtn');
 const importFileInput = document.getElementById('importFileInput');
 const currentAssets = document.getElementById('currentAssets');
 const currentPrice = document.getElementById('currentPrice');
 const currentAmount = document.getElementById('currentAmount');
+const stopLossPrice = document.getElementById('stopLossPrice');
 
 let isTrading = false;
 let isSelecting = false;
 let currentSelectionType = 'balance'; // 'balance' or 'price'
 let savedSelector = null;
 let savedPriceSelector = null;
+let autoRefreshTimer = null; // 자동 새로고침 타이머
+let autoRefreshCountdownTimer = null; // 자동 새로고침 카운트다운 타이머
+let autoRefreshRemainingTime = 0; // 남은 시간 (초)
 let savedSelectors = {
   assets: null,
   price: null
@@ -60,12 +63,10 @@ async function injectContentScript() {
     try {
       const response = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
       if (response && response.status === 'ready') {
-        console.log('✅ Content Script가 이미 주입되어 있습니다.');
         return true;
       }
     } catch (error) {
       // Content Script가 주입되지 않았음
-      console.log('📝 Content Script 주입 중...');
     }
     
     // Content Script 주입
@@ -74,7 +75,6 @@ async function injectContentScript() {
       files: ['content/content.js']
     });
     
-    console.log('✅ Content Script 주입 완료');
     return true;
   } catch (error) {
     console.error('❌ Content Script 주입 실패:', error);
@@ -102,12 +102,10 @@ async function sendMessageToContentScript(message) {
 // ============================================
 // Exchange Selection and Navigation Function
 // ============================================
-console.log('=== Exchange Selection Function ===');
 
 // Exchange selection change event
 exchangeSelect.addEventListener('change', async () => {
   const selectedExchange = exchangeSelect.value;
-  console.log('Selected Exchange:', selectedExchange);
   
   // Enable/disable go button
   goToExchangeBtn.disabled = !selectedExchange;
@@ -132,22 +130,35 @@ leverageValueInput.addEventListener('input', () => {
 // Trading Mode 변경 시 버튼 상태 업데이트
 // Trading mode 제거됨
 
-// Position 입력 변경 시 저장 및 Amount 재계산
-positionValueInput.addEventListener('change', () => {
-  saveSettings();
-  // Amount 재계산
-  currentAmount.textContent = calculateAmount();
-});
+// Position split inputs are handled in initializeCustomTpSystem()
 
-// Position 입력 중 실시간 Amount 업데이트
-positionValueInput.addEventListener('input', () => {
-  currentAmount.textContent = calculateAmount();
-});
-
-// Stoploss 값 변경 시 설정 저장
+  // Stoploss 값 변경 시 설정 저장
 stoplossValueInput.addEventListener('input', () => {
   saveSettings();
 });
+
+// Trading Mode 변경 시 설정 저장
+tradingModeSelect.addEventListener('change', () => {
+  saveSettings();
+});
+
+// Auto Refresh 입력 변경 시 설정 저장 및 타이머 업데이트
+if (autoRefreshInterval) {
+  autoRefreshInterval.addEventListener('change', () => {
+    const minutes = parseInt(autoRefreshInterval.value) || 0;
+    // 0-100 범위 검증
+    if (minutes < 0) autoRefreshInterval.value = 0;
+    if (minutes > 100) autoRefreshInterval.value = 100;
+    saveSettings();
+  });
+  
+  autoRefreshInterval.addEventListener('input', () => {
+    const minutes = parseInt(autoRefreshInterval.value) || 0;
+    // 0-100 범위 검증
+    if (minutes < 0) autoRefreshInterval.value = 0;
+    if (minutes > 100) autoRefreshInterval.value = 100;
+  });
+}
 
 // 거래소로 이동 버튼 클릭 이벤트
 goToExchangeBtn.addEventListener('click', async () => {
@@ -155,7 +166,6 @@ goToExchangeBtn.addEventListener('click', async () => {
   const url = exchangeUrls[selectedExchange];
   
   if (url) {
-    console.log('거래소로 이동:', url);
     await chrome.tabs.create({ url });
   }
 });
@@ -163,14 +173,10 @@ goToExchangeBtn.addEventListener('click', async () => {
 // ============================================
 // 자본금 추출 기능
 // ============================================
-console.log('=== 자본금 추출 기능 ===');
 
 // 자본금 추출 버튼 클릭 이벤트
 extractAssetsBtn.addEventListener('click', async () => {
-  console.log('자본금 추출 버튼 클릭됨');
-  
   // 기존 셀렉터 제거 후 새로 설정
-  console.log('기존 셀렉터 제거 후 새로 설정');
   savedSelector = null;
   await chrome.storage.local.remove(['balanceSelector']);
   
@@ -180,16 +186,14 @@ extractAssetsBtn.addEventListener('click', async () => {
 
 // 현재가 추출 버튼 클릭 이벤트
 extractPriceBtn.addEventListener('click', async () => {
-  console.log('현재가 추출 버튼 클릭됨');
-  
   // 기존 셀렉터 제거 후 새로 설정
-  console.log('기존 셀렉터 제거 후 새로 설정');
   savedPriceSelector = null;
   await chrome.storage.local.remove(['priceSelector']);
   
   // 요소 선택 모드 시작
   await startElementSelection('price');
 });
+
 
 // ============================================
 // 매크로 녹화 기능
@@ -198,10 +202,10 @@ extractPriceBtn.addEventListener('click', async () => {
 // 녹화 상태 추적 변수
 let isLongRecording = false;
 let isShortRecording = false;
+let isCloseRecording = false;
 
 // Long 매크로 녹화
 longRecordBtn.addEventListener('click', async () => {
-  console.log('Long 매크로 녹화 클릭됨, 현재 상태:', isLongRecording);
   
   if (isLongRecording) {
     // 녹화 중단
@@ -216,7 +220,6 @@ longRecordBtn.addEventListener('click', async () => {
 
 // Short 매크로 녹화
 shortRecordBtn.addEventListener('click', async () => {
-  console.log('Short 매크로 녹화 클릭됨, 현재 상태:', isShortRecording);
   
   if (isShortRecording) {
     // 녹화 중단
@@ -229,14 +232,27 @@ shortRecordBtn.addEventListener('click', async () => {
   }
 });
 
+// SL 매크로 녹화
+// Close 매크로 녹화
+closeRecordBtn.addEventListener('click', async () => {
+  
+  if (isCloseRecording) {
+    // 녹화 중단
+    await stopMacroRecording('close');
+    isCloseRecording = false;
+  } else {
+    // 녹화 시작
+    await startMacroRecording('close');
+    isCloseRecording = true;
+  }
+});
+
 // ============================================
 // 수동 매매 기능
 // ============================================
 
 // Manual Long 버튼
 manualLongBtn.addEventListener('click', async () => {
-  console.log('Manual Long 클릭됨');
-  
   // 매크로 존재 여부 확인
   const macros = await loadMacros();
   if (!macros.longMacro || macros.longMacro.length === 0) {
@@ -250,20 +266,6 @@ manualLongBtn.addEventListener('click', async () => {
     return;
   }
   
-  console.log(`Long 매크로 실행 시도: Amount=${calculatedAmount}, 액션 수=${macros.longMacro.length}`);
-  
-  // 매크로 내용 미리보기 (처음 5개 액션)
-  console.log('Long 매크로 미리보기:');
-  macros.longMacro.slice(0, 5).forEach((action, index) => {
-    if (action.type === 'input') {
-      console.log(`  ${index + 1}. INPUT: ${action.value} -> ${action.selector} ${action.isAmountField ? '(🎯 Amount 필드)' : '(일반 입력)'}`);
-    } else if (action.type === 'click') {
-      console.log(`  ${index + 1}. CLICK: "${action.elementText}" -> ${action.selector}`);
-    } else {
-      console.log(`  ${index + 1}. ${action.type.toUpperCase()}: ${action.selector}`);
-    }
-  });
-  
   // Long/Short 버튼 클릭 확인
   const hasLongClick = macros.longMacro.some(action => 
     action.type === 'click' && 
@@ -274,7 +276,6 @@ manualLongBtn.addEventListener('click', async () => {
   );
   
   if (!hasLongClick) {
-    console.warn('⚠️  경고: Long 매크로에 Long/Buy 버튼 클릭이 없습니다!');
     const confirmed = confirm('Long 매크로에 Long/Buy 버튼 클릭이 감지되지 않았습니다.\n매크로를 다시 녹화하시겠습니까?');
     if (confirmed) {
       await startMacroRecording('long');
@@ -282,14 +283,12 @@ manualLongBtn.addEventListener('click', async () => {
     }
   }
   
-  // 스마트 거래 시스템 사용
-  await executeSmartTrade('long', calculatedAmount);
+  // Manual 버튼: 모든 단계를 한 번에 실행
+  await executeSplitEntryAll('long');
 });
 
 // Manual Short 버튼
 manualShortBtn.addEventListener('click', async () => {
-  console.log('Manual Short 클릭됨');
-  
   // 매크로 존재 여부 확인
   const macros = await loadMacros();
   if (!macros.shortMacro || macros.shortMacro.length === 0) {
@@ -303,20 +302,6 @@ manualShortBtn.addEventListener('click', async () => {
     return;
   }
   
-  console.log(`Short 매크로 실행 시도: Amount=${calculatedAmount}, 액션 수=${macros.shortMacro.length}`);
-  
-  // 매크로 내용 미리보기 (처음 5개 액션)
-  console.log('Short 매크로 미리보기:');
-  macros.shortMacro.slice(0, 5).forEach((action, index) => {
-    if (action.type === 'input') {
-      console.log(`  ${index + 1}. INPUT: ${action.value} -> ${action.selector} ${action.isAmountField ? '(🎯 Amount 필드)' : '(일반 입력)'}`);
-    } else if (action.type === 'click') {
-      console.log(`  ${index + 1}. CLICK: "${action.elementText}" -> ${action.selector}`);
-    } else {
-      console.log(`  ${index + 1}. ${action.type.toUpperCase()}: ${action.selector}`);
-    }
-  });
-  
   // Long/Short 버튼 클릭 확인
   const hasShortClick = macros.shortMacro.some(action => 
     action.type === 'click' && 
@@ -327,7 +312,6 @@ manualShortBtn.addEventListener('click', async () => {
   );
   
   if (!hasShortClick) {
-    console.warn('⚠️  경고: Short 매크로에 Short/Sell 버튼 클릭이 없습니다!');
     const confirmed = confirm('Short 매크로에 Short/Sell 버튼 클릭이 감지되지 않았습니다.\n매크로를 다시 녹화하시겠습니까?');
     if (confirmed) {
       await startMacroRecording('short');
@@ -335,22 +319,47 @@ manualShortBtn.addEventListener('click', async () => {
     }
   }
   
-  // 스마트 거래 시스템 사용
-  await executeSmartTrade('short', calculatedAmount);
+  // Manual 버튼: 모든 단계를 한 번에 실행
+  await executeSplitEntryAll('short');
+});
+
+  // SL 수동 매매
+// Close 수동 매매
+manualCloseBtn.addEventListener('click', async () => {
+  
+  // 매크로 존재 여부 확인
+  const macros = await loadMacros();
+  if (!macros.closeMacro || macros.closeMacro.length === 0) {
+    alert('Close 매크로가 녹화되지 않았습니다. 먼저 Close Record 버튼으로 매크로를 녹화해주세요.');
+    return;
+  }
+  
+  
+  // Close 매크로는 단순 클릭만 하므로 별도 값 없이 실행
+  const result = await executeSmartTrade('close', null);
+  
+  // Close 실행 성공 시 분할 진입 상태 초기화 및 포지션 비활성화
+  if (result && result.success) {
+    resetSplitEntryState();
+    currentPosition.isActive = false;
+    currentPosition.entryPrice = null;
+    currentPosition.type = null;
+    updateStopLossPriceDisplay(); // SL 가격 표시 숨김
+    
+    // TP 상태 초기화
+    splitTpStrategy.executedTps = [false, false, false];
+    if (customTpStrategy.type === 'trailing') {
+      customTpStrategy.maxProfit = 0;
+      customTpStrategy.trailingStopPrice = null;
+    }
+  }
 });
 
 // ============================================
 // 데이터 관리 기능
 // ============================================
 
-// Reset All Data 버튼
-resetAllBtn.addEventListener('click', async () => {
-  const confirmed = confirm('모든 데이터를 초기화하시겠습니까?\n(셀렉터, 매크로, 설정이 모두 삭제됩니다)');
-  
-  if (confirmed) {
-    await resetAllData();
-  }
-});
+// Reset All Data functionality removed
 
 // Export Data 버튼
 exportDataBtn.addEventListener('click', async () => {
@@ -372,53 +381,7 @@ importFileInput.addEventListener('change', async (event) => {
   }
 });
 
-// 모든 데이터 초기화
-async function resetAllData() {
-  try {
-    console.log('모든 데이터 초기화 시작');
-    
-    // Chrome Storage 완전 초기화
-    await chrome.storage.local.clear();
-    
-    // 메모리 변수 초기화
-    isTrading = false;
-    savedSelector = null;
-    savedPriceSelector = null;
-    savedSelectors = {
-      assets: null,
-      price: null
-    };
-    isLongRecording = false;
-    isShortRecording = false;
-    
-    // UI 초기화
-    exchangeSelect.value = '';
-    leverageValueInput.value = 1;
-    positionValueInput.value = 100;
-    stoplossValueInput.value = 2;
-    // tradingModeSelect.value = 'oneway'; // 제거됨
-    
-    // Trading Status 초기화
-    currentAssets.textContent = '-';
-    currentPrice.textContent = '-';
-    currentAmount.textContent = '-';
-    
-    // 버튼 상태 초기화
-    updateSelectorButtonStates();
-    updateMacroButtonStates();
-    updateUI();
-    
-    // 주기적 추출 중단
-    stopPeriodicExtraction();
-    
-    console.log('✅ 모든 데이터 초기화 완료');
-    alert('모든 데이터가 초기화되었습니다.');
-    
-  } catch (error) {
-    console.error('데이터 초기화 실패:', error);
-    alert('데이터 초기화에 실패했습니다.');
-  }
-}
+// resetAllData function removed
 
 // 모든 데이터 내보내기
 async function exportAllData() {
@@ -550,6 +513,8 @@ async function stopMacroRecording(type) {
     isLongRecording = false;
   } else if (type === 'short') {
     isShortRecording = false;
+  } else if (type === 'close') {
+    isCloseRecording = false;
   }
   
   // UI 즉시 업데이트
@@ -558,7 +523,29 @@ async function stopMacroRecording(type) {
 
 // 매크로 녹화 UI 업데이트
 function updateMacroRecordingUI(type, isRecording) {
-  const button = type === 'long' ? longRecordBtn : shortRecordBtn;
+  let button;
+  let buttonText;
+  let originalColor;
+  
+  switch(type) {
+    case 'long':
+      button = longRecordBtn;
+      buttonText = 'Long Record';
+      originalColor = '#4caf50';
+      break;
+    case 'short':
+      button = shortRecordBtn;
+      buttonText = 'Short Record';
+      originalColor = '#f44336';
+      break;
+    case 'close':
+      button = closeRecordBtn;
+      buttonText = 'Close Record';
+      originalColor = '#ff5722';
+      break;
+    default:
+      return;
+  }
   
   if (isRecording) {
     button.disabled = false; // 녹화 중에도 클릭 가능하게 변경
@@ -568,9 +555,9 @@ function updateMacroRecordingUI(type, isRecording) {
     button.style.color = 'white';
   } else {
     button.disabled = false;
-    button.textContent = `${type === 'long' ? 'Long' : 'Short'} Record`;
+    button.textContent = buttonText;
     button.style.opacity = '1';
-    button.style.backgroundColor = type === 'long' ? '#4caf50' : '#f44336'; // 원래 색상 복원
+    button.style.backgroundColor = originalColor; // 원래 색상 복원
     button.style.color = 'white';
   }
 }
@@ -584,7 +571,7 @@ async function saveMacro(macroType, actions) {
 
 // 매크로 불러오기
 async function loadMacros() {
-  const result = await chrome.storage.local.get(['longMacro', 'shortMacro']);
+  const result = await chrome.storage.local.get(['longMacro', 'shortMacro', 'closeMacro']);
   console.log('✅ 저장된 매크로:', result);
   return result;
 }
@@ -639,17 +626,454 @@ async function initializeAutoTrading() {
     return;
   }
   
-  console.log('매크로 확인 완료:', {
-    longActions: macros.longMacro.length,
-    shortActions: macros.shortMacro.length
-  });
 }
 
 // 매크로 실행 (거래 시그널 발생 시 호출)
 // 스마트 거래 실행 함수 (매크로 대신 사용)
-async function executeSmartTrade(signal, amount) {
-  console.log(`🎯 스마트 거래 실행: ${signal}, Amount: ${amount}`);
+// Manual 버튼용: 모든 분할 진입 단계를 한 번에 실행
+async function executeSplitEntryAll(tradeType) {
+  // 활성화된 포지션 비율 찾기 (0이 아닌 값들)
+  const activePositions = splitEntryStrategy.positions
+    .map((pos, index) => ({ value: pos, index }))
+    .filter(item => item.value > 0);
   
+  if (activePositions.length === 0) {
+    alert('활성화된 포지션이 없습니다. Position (%) 입력 필드에 값을 입력해주세요.');
+    return { success: false, error: '활성화된 포지션이 없습니다.' };
+  }
+  
+  // 모든 단계 초기화
+  splitEntryStrategy.executedEntries = [false, false, false];
+  splitEntryStrategy.entryPrices = [null, null, null];
+  
+  // 순차적으로 각 포지션 진입
+  for (let i = 0; i < activePositions.length; i++) {
+    const position = activePositions[i];
+    const positionPercent = position.value;
+    const amount = calculateAmountForPosition(positionPercent);
+    
+    if (amount === '-' || parseFloat(amount) === 0) {
+      console.warn(`⚠️ ${i + 1}단계 진입 건너뜀: Amount 계산 실패 (${positionPercent}%)`);
+      continue;
+    }
+    
+    try {
+      // 🎯 진입 전에 현재가를 읽어서 진입가로 저장 (진입 후에는 가격이 변동될 수 있음)
+      let entryPriceBeforeTrade = null;
+      const currentPriceText = currentPrice.textContent.trim();
+      if (currentPriceText !== '-') {
+        entryPriceBeforeTrade = parseFloat(currentPriceText.replace(/[^0-9.-]/g, ''));
+        if (isNaN(entryPriceBeforeTrade) || entryPriceBeforeTrade === 0) {
+          entryPriceBeforeTrade = null;
+        }
+      }
+      
+      // 각 진입 실행
+      await executeSmartTrade(tradeType, amount);
+      
+      // 진입 성공 시 상태 업데이트
+      splitEntryStrategy.executedEntries[position.index] = true;
+      
+      // 진입 전에 읽은 가격을 진입가로 저장
+      if (entryPriceBeforeTrade) {
+        splitEntryStrategy.entryPrices[position.index] = entryPriceBeforeTrade;
+        
+        // 첫 번째 진입 시 포지션 상태 업데이트 및 자동 SL 설정
+        if (i === 0) {
+          currentPosition.type = tradeType;
+          currentPosition.entryPrice = entryPriceBeforeTrade;
+          currentPosition.entryTime = Date.now();
+          currentPosition.isActive = true;
+          
+          console.log(`📊 진입가 기록: ${entryPriceBeforeTrade} (포지션: ${tradeType})`);
+          
+          // Split TP 상태 초기화
+          splitTpStrategy.executedTps = [false, false, false];
+          
+          // Trailing TP 상태 초기화
+          if (customTpStrategy.type === 'trailing') {
+            customTpStrategy.maxProfit = 0;
+            customTpStrategy.trailingStopPrice = null;
+          }
+          
+            // 스탑로스 가격 표시 업데이트 (진입가가 설정된 직후)
+            updateStopLossPriceDisplay();
+            
+            // 첫 번째 진입 후 자동으로 스탑로스 설정 (기록된 진입가 사용)
+            await autoSetStopLossAfterEntry(tradeType, entryPriceBeforeTrade);
+            
+            // SL 설정 후 다시 표시 업데이트 (약간의 지연 후)
+            setTimeout(() => {
+              updateStopLossPriceDisplay();
+            }, 2000);
+          }
+        } else {
+          console.warn('⚠️ 진입 전 가격을 읽을 수 없어 진입가를 기록하지 못했습니다.');
+        }
+        
+        // 마지막 진입이 아니면 대기 (2초)
+      if (i < activePositions.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } catch (error) {
+      console.error(`❌ ${i + 1}단계 진입 실패:`, error);
+      alert(`${i + 1}단계 진입 실패: ${error.message}`);
+      break; // 오류 발생 시 중단
+    }
+  }
+  
+  // 설정 저장
+  await saveSplitEntrySettings();
+  
+  return { success: true, message: `${activePositions.length}단계 분할 진입 완료` };
+}
+
+// 분할 진입 상태 초기화 함수
+async function resetSplitEntryState() {
+  splitEntryStrategy.executedEntries = [false, false, false];
+  splitEntryStrategy.entryPrices = [null, null, null];
+  await saveSplitEntrySettings();
+}
+
+// 진입 후 자동 스탑로스 설정 함수
+async function autoSetStopLossAfterEntry(tradeType, entryPrice = null) {
+  try {
+    // 스탑로스 값 검증
+    const stoplossPercent = parseFloat(stoplossValueInput.value) || 0;
+    if (stoplossPercent === 0 || stoplossPercent >= 100) {
+      // 스탑로스가 설정되지 않았으면 설정하지 않음
+      console.log('⚠️ 스탑로스가 설정되지 않아 자동 SL 설정을 건너뜁니다.');
+      return;
+    }
+    
+    // 진입가 확인 (파라미터로 받은 값 우선, 없으면 저장된 값, 그래도 없으면 현재가)
+    let finalEntryPrice = entryPrice;
+    if (!finalEntryPrice || isNaN(finalEntryPrice) || finalEntryPrice === 0) {
+      // currentPosition에서 가져오기
+      finalEntryPrice = currentPosition.entryPrice;
+    }
+    if (!finalEntryPrice || isNaN(finalEntryPrice) || finalEntryPrice === 0) {
+      // splitEntryStrategy에서 가져오기 (첫 번째 저장된 진입가)
+      const savedPrices = splitEntryStrategy.entryPrices.filter(p => p && !isNaN(p) && p > 0);
+      if (savedPrices.length > 0) {
+        finalEntryPrice = savedPrices[0];
+      }
+    }
+    if (!finalEntryPrice || isNaN(finalEntryPrice) || finalEntryPrice === 0) {
+      // 마지막으로 현재가 시도
+      const currentPriceText = currentPrice.textContent.trim();
+      if (currentPriceText !== '-') {
+        finalEntryPrice = parseFloat(currentPriceText.replace(/[^0-9.-]/g, ''));
+      }
+    }
+    
+    if (!finalEntryPrice || isNaN(finalEntryPrice) || finalEntryPrice === 0) {
+      console.error('❌ 진입가를 확인할 수 없어 자동 SL 설정 실패');
+      return;
+    }
+    
+    console.log(`🔧 자동 SL 설정 시작: 진입가=${finalEntryPrice}, 포지션=${tradeType}, SL%=${stoplossPercent}`);
+    
+    const slPrice = calculateSlPrice(finalEntryPrice, tradeType);
+    if (slPrice === null) {
+      console.error('❌ SL 가격 계산 실패');
+      return;
+    }
+    
+    console.log(`✅ 계산된 SL 가격: ${slPrice}`);
+    
+    // 스탑로스 가격 표시 업데이트 (자동 설정 없이 모니터링만)
+    updateStopLossPriceDisplay();
+    
+  } catch (error) {
+    console.error('❌ 자동 SL 설정 오류:', error);
+  }
+}
+
+// TP 자동 체크 및 실행 함수 (중복 실행 방지)
+let isExecutingTp = false;
+
+async function checkAndExecuteTp() {
+  try {
+    // 이미 TP 실행 중이면 건너뜀
+    if (isExecutingTp) return;
+    
+    // 현재가 확인
+    const currentPriceText = currentPrice.textContent.trim();
+    if (currentPriceText === '-') return;
+    
+    const currentPriceValue = parseFloat(currentPriceText.replace(/[^0-9.-]/g, ''));
+    if (isNaN(currentPriceValue) || currentPriceValue === 0) return;
+    
+    // 진입가 확인
+    if (!currentPosition.entryPrice) return;
+    
+    // TP 체크 (시간 경과는 0으로 설정 - 현재는 사용하지 않음)
+    const shouldTp = shouldExecuteTp(
+      currentPosition.entryPrice, 
+      currentPriceValue, 
+      currentPosition.type, 
+      0
+    );
+    
+    if (shouldTp) {
+      isExecutingTp = true;
+      try {
+        // TP 실행
+        await executeTakeProfit();
+      } finally {
+        // 최소 2초 후에 다시 체크 가능하도록 설정 (중복 실행 방지)
+        setTimeout(() => {
+          isExecutingTp = false;
+        }, 2000);
+      }
+    }
+    
+  } catch (error) {
+    console.error('TP 체크 오류:', error);
+    isExecutingTp = false;
+  }
+}
+
+// TP 실행 함수
+async function executeTakeProfit() {
+  try {
+    // 매크로 존재 여부 확인
+    const macros = await loadMacros();
+    if (!macros.closeMacro || macros.closeMacro.length === 0) {
+      return;
+    }
+    
+    // TP 타입에 따라 처리
+    let tpResult;
+    if (customTpStrategy.type === 'split') {
+      // Split TP의 경우 수익률 계산
+      const currentPriceValue = parseFloat(currentPrice.textContent.replace(/[^0-9.-]/g, ''));
+      const profitPercent = currentPosition.type === 'long'
+        ? ((currentPriceValue - currentPosition.entryPrice) / currentPosition.entryPrice) * 100
+        : ((currentPosition.entryPrice - currentPriceValue) / currentPosition.entryPrice) * 100;
+      
+      tpResult = checkSplitTp(profitPercent);
+      
+      if (tpResult && tpResult.percentage) {
+        // Split TP 실행 - 일부만 종료하는 경우는 추후 구현
+        // 현재는 Close 매크로로 전체 종료
+        await executeSmartTrade('close', null);
+        
+        // 마지막 TP인 경우 포지션 비활성화
+        if (tpResult.percentage >= 100) {
+          currentPosition.isActive = false;
+          currentPosition.entryPrice = null;
+          splitTpStrategy.executedTps = [false, false, false];
+        }
+      }
+    } else {
+      // Simple TP 또는 Trailing TP - 전체 종료
+      await executeSmartTrade('close', null);
+      
+      // 포지션 비활성화
+      currentPosition.isActive = false;
+      currentPosition.entryPrice = null;
+      
+      // Trailing TP 상태 초기화
+      if (customTpStrategy.type === 'trailing') {
+        customTpStrategy.maxProfit = 0;
+        customTpStrategy.trailingStopPrice = null;
+      }
+      
+      // Split TP 상태 초기화
+      splitTpStrategy.executedTps = [false, false, false];
+      
+      // 분할 진입 상태 초기화
+      resetSplitEntryState();
+    }
+    
+  } catch (error) {
+    console.error('TP 실행 오류:', error);
+  }
+}
+
+// 분할 진입 실행 함수 (메시지 수신 시 다음 단계만 실행)
+async function executeSplitEntry(tradeType) {
+  
+  // 활성화된 포지션 비율 찾기 (0이 아닌 값들)
+  const activePositions = splitEntryStrategy.positions
+    .map((pos, index) => ({ value: pos, index }))
+    .filter(item => item.value > 0);
+  
+  if (activePositions.length === 0) {
+    console.warn('⚠️ 활성화된 포지션이 없습니다. position1에 값을 입력해주세요.');
+    return { success: false, error: '활성화된 포지션이 없습니다.' };
+  }
+  
+  // 현재까지 진입된 포지션 비율의 합 계산
+  let totalEnteredPosition = 0;
+  for (let i = 0; i < activePositions.length; i++) {
+    const originalIndex = activePositions[i].index;
+    if (splitEntryStrategy.executedEntries[originalIndex]) {
+      totalEnteredPosition += activePositions[i].value;
+    }
+  }
+  
+  // 총 포지션 비율 계산
+  const totalPosition = activePositions.reduce((sum, pos) => sum + pos.value, 0);
+  
+  // 거래 모드 확인
+  const tradingMode = tradingModeSelect?.value || 'oneway';
+  
+  // One Way Mode: 100% 포지션이 진입되면 더 이상 진입하지 않음
+  // Hedge Mode: 진입 제한 없이 계속 시도 가능
+  if (totalEnteredPosition >= totalPosition) {
+    if (tradingMode === 'oneway') {
+      // One Way Mode: 100% 진입 완료 - 진입 제한
+      console.log(`✅ 총 포지션 ${totalPosition}% 진입 완료 (현재: ${totalEnteredPosition}%)`);
+      return { 
+        success: false, 
+        error: `총 포지션 ${totalPosition}%가 진입되었습니다. 포지션이 정리(SL/TP/Close)된 후 다시 진입할 수 있습니다.`,
+        isComplete: true,
+        allStepsComplete: true
+      };
+    } else {
+      // Hedge Mode: 진입 제한 없이 처음부터 다시 시작
+      console.log('🔄 Hedge Mode: 100% 진입 완료 - 처음부터 다시 진입 시작');
+      // 진입 상태 초기화 (진입가는 유지)
+      splitEntryStrategy.executedEntries = [false, false, false];
+      totalEnteredPosition = 0;
+    }
+  }
+  
+  // 실행되지 않은 첫 번째 단계 찾기 (100% 미만일 때만)
+  let nextStepIndex = -1;
+  for (let i = 0; i < activePositions.length; i++) {
+    const originalIndex = activePositions[i].index;
+    if (!splitEntryStrategy.executedEntries[originalIndex]) {
+      nextStepIndex = i;
+      break;
+    }
+  }
+  
+  // 모든 단계가 실행되었지만 100%가 안 되었다면 처음부터 다시
+  if (nextStepIndex === -1 && totalEnteredPosition < totalPosition) {
+    console.log(`🔄 누적 포지션 ${totalEnteredPosition}% < 총 ${totalPosition}% - 처음부터 다시 진입 시작`);
+    splitEntryStrategy.executedEntries = [false, false, false];
+    nextStepIndex = 0;
+  }
+  
+  // 여전히 다음 단계를 찾을 수 없으면 오류
+  if (nextStepIndex === -1) {
+    return { 
+      success: false, 
+      error: '진입할 단계를 찾을 수 없습니다.',
+      isComplete: true
+    };
+  }
+  
+  const currentStep = activePositions[nextStepIndex];
+  const stepNumber = nextStepIndex + 1;
+  const totalSteps = activePositions.length;
+  const positionPercent = currentStep.value;
+  const originalIndex = currentStep.index;
+  
+  // 다음 단계를 실행하면 100%를 초과하는지 확인
+  const nextTotalPosition = totalEnteredPosition + positionPercent;
+  if (nextTotalPosition > totalPosition) {
+    // 100%를 초과하면 진입하지 않음
+    const remainingPercent = totalPosition - totalEnteredPosition;
+    if (remainingPercent > 0) {
+      console.log(`⚠️ 다음 진입 시 ${nextTotalPosition}%가 되어 총 포지션 ${totalPosition}%를 초과합니다. 남은 ${remainingPercent}%만 진입 가능하지만 설정된 단계 비율과 맞지 않아 진입을 중단합니다.`);
+    } else {
+      console.log(`✅ 총 포지션 ${totalPosition}%가 이미 진입되었습니다.`);
+    }
+    return {
+      success: false,
+      error: `총 포지션 ${totalPosition}%가 이미 진입되었거나 다음 진입 시 ${nextTotalPosition}%로 초과됩니다.`,
+      isComplete: true,
+      allStepsComplete: true
+    };
+  }
+  
+  const amount = calculateAmountForPosition(positionPercent);
+  
+  if (amount === '-' || parseFloat(amount) === 0) {
+    return { success: false, error: `Amount 계산 실패: ${positionPercent}%` };
+  }
+  
+  try {
+    // 🎯 진입 전에 현재가를 읽어서 진입가로 저장 (진입 후에는 가격이 변동될 수 있음)
+    let entryPriceBeforeTrade = null;
+    const currentPriceText = currentPrice.textContent.trim();
+    if (currentPriceText !== '-') {
+      entryPriceBeforeTrade = parseFloat(currentPriceText.replace(/[^0-9.-]/g, ''));
+      if (isNaN(entryPriceBeforeTrade) || entryPriceBeforeTrade === 0) {
+        entryPriceBeforeTrade = null;
+      }
+    }
+    
+    // 현재 단계 진입 실행
+    const result = await executeSmartTrade(tradeType, amount);
+    
+    if (result && result.success) {
+      // 진입 성공 시 상태 업데이트
+      splitEntryStrategy.executedEntries[originalIndex] = true;
+      
+      // 진입 전에 읽은 가격을 진입가로 저장
+      if (entryPriceBeforeTrade) {
+        splitEntryStrategy.entryPrices[originalIndex] = entryPriceBeforeTrade;
+        
+        // 첫 번째 진입 시 포지션 상태 업데이트
+        if (stepNumber === 1) {
+          currentPosition.type = tradeType;
+          currentPosition.entryPrice = entryPriceBeforeTrade;
+          currentPosition.entryTime = Date.now();
+          currentPosition.isActive = true;
+          
+          console.log(`📊 진입가 기록: ${entryPriceBeforeTrade} (포지션: ${tradeType})`);
+          
+          // Split TP 상태 초기화
+          splitTpStrategy.executedTps = [false, false, false];
+          
+          // Trailing TP 상태 초기화
+          if (customTpStrategy.type === 'trailing') {
+            customTpStrategy.maxProfit = 0;
+            customTpStrategy.trailingStopPrice = null;
+          }
+          
+          // 스탑로스 가격 표시 업데이트 (진입가가 설정된 직후)
+          updateStopLossPriceDisplay();
+          
+          // 첫 번째 진입 단계 완료 시 자동으로 스탑로스 설정 (기록된 진입가 사용)
+          await autoSetStopLossAfterEntry(tradeType, entryPriceBeforeTrade);
+          
+          // SL 설정 후 다시 표시 업데이트 (약간의 지연 후)
+          setTimeout(() => {
+            updateStopLossPriceDisplay();
+          }, 2000);
+        }
+      } else {
+        console.warn('⚠️ 진입 전 가격을 읽을 수 없어 진입가를 기록하지 못했습니다.');
+      }
+      
+      // 설정 저장
+      await saveSplitEntrySettings();
+      
+      const isLastStep = nextStepIndex === activePositions.length - 1;
+      return { 
+        success: true, 
+        message: `${stepNumber}/${totalSteps}단계 진입 완료`,
+        step: stepNumber,
+        totalSteps: totalSteps,
+        isComplete: isLastStep
+      };
+    } else {
+      throw new Error(result?.error || '진입 실패');
+    }
+  } catch (error) {
+    console.error(`❌ ${stepNumber}단계 진입 실패:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function executeSmartTrade(signal, amount) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
@@ -657,52 +1081,49 @@ async function executeSmartTrade(signal, amount) {
       throw new Error('활성 탭을 찾을 수 없습니다.');
     }
     
-    console.log(`탭 ID: ${tab.id}, URL: ${tab.url}`);
-    
     // Content Script 주입 확인
     try {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['content/content.js']
       });
-      console.log('Content Script 주입 완료');
     } catch (injectionError) {
-      console.log('Content Script 이미 주입됨 또는 주입 실패:', injectionError.message);
+      // Content Script 이미 주입됨 또는 주입 실패 (정상)
     }
     
     // 잠시 대기 후 메시지 전송
-    setTimeout(async () => {
-      try {
-        // Content Script에 스마트 거래 메시지 전송
-        const response = await sendMessageToContentScript({
-          action: 'executeSmartTrade',
-          tradeType: signal, // 'long' or 'short'
-          amount: amount
-        });
-        
-        console.log(`${signal} 스마트 거래 실행 완료:`, response);
-        
-        if (response && response.success) {
-          console.log(`✅ ${signal} 거래 성공: ${response.message}`);
-        } else {
-          console.error(`❌ ${signal} 거래 실패: ${response?.error || '알 수 없는 오류'}`);
-          alert(`거래 실패: ${response?.error || '알 수 없는 오류'}`);
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          // Content Script에 스마트 거래 메시지 전송
+          const response = await sendMessageToContentScript({
+            action: 'executeSmartTrade',
+            tradeType: signal, // 'long' or 'short'
+            amount: amount
+          });
+          
+          if (response && response.success) {
+            resolve(response);
+          } else {
+            const errorMsg = response?.error || '알 수 없는 오류';
+            console.error(`❌ ${signal} 거래 실패: ${errorMsg}`);
+            reject(new Error(errorMsg));
+          }
+        } catch (messageError) {
+          console.error('스마트 거래 메시지 전송 실패:', messageError);
+          reject(messageError);
         }
-      } catch (messageError) {
-        console.error('스마트 거래 메시지 전송 실패:', messageError);
-        alert(`거래 실행 실패: ${messageError.message}`);
-      }
-    }, 500);
+      }, 500);
+    });
     
   } catch (error) {
     console.error('스마트 거래 실행 실패:', error);
-    alert(`거래 실행 실패: ${error.message}`);
+    throw error;
   }
 }
 
 // 기존 매크로 실행 함수 (백업용)
 async function executeMacro(signal, amount) {
-  console.log(`매크로 실행: ${signal}, Amount: ${amount}`);
   
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -968,26 +1389,28 @@ function updateSelectorUI(type = 'balance') {
 function updateSelectorButtonStates() {
   // Assets Extraction 버튼
   if (savedSelectors.assets) {
-    extractAssetsBtn.classList.add('has-data');
+    extractAssetsBtn.classList.add('extracted');
     console.log('Assets button: Has data');
   } else {
-    extractAssetsBtn.classList.remove('has-data');
+    extractAssetsBtn.classList.remove('extracted');
     console.log('Assets button: No data');
   }
   
   // Price Extraction 버튼
   if (savedSelectors.price) {
-    extractPriceBtn.classList.add('has-data');
+    extractPriceBtn.classList.add('extracted');
     console.log('Price button: Has data');
   } else {
-    extractPriceBtn.classList.remove('has-data');
+    extractPriceBtn.classList.remove('extracted');
     console.log('Price button: No data');
   }
 }
 
 // 매크로 버튼 상태 업데이트
 async function updateMacroButtonStates() {
+  console.log('🔄 매크로 버튼 상태 업데이트 시작');
   const macros = await loadMacros();
+  console.log('📦 로드된 매크로들:', macros);
   
   // Long Record 버튼
   if (macros.longMacro && macros.longMacro.length > 0) {
@@ -1010,6 +1433,19 @@ async function updateMacroButtonStates() {
     manualShortBtn.disabled = true;
     console.log('Short macro: Not available');
   }
+  
+  // Close Record 버튼
+  if (macros.closeMacro && macros.closeMacro.length > 0) {
+    closeRecordBtn.classList.add('has-macro');
+    manualCloseBtn.disabled = false;
+    console.log('Close macro: Available');
+  } else {
+    closeRecordBtn.classList.remove('has-macro');
+    manualCloseBtn.disabled = true;
+    console.log('Close macro: Not available');
+  }
+  
+  console.log('✅ 매크로 버튼 상태 업데이트 완료');
 }
 
 
@@ -1062,6 +1498,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       isLongRecording = false;
     } else if (request.macroType === 'short') {
       isShortRecording = false;
+    } else if (request.macroType === 'close') {
+      isCloseRecording = false;
     }
     
     // UI 업데이트
@@ -1086,18 +1524,29 @@ console.log('=== Storage API 테스트 ===');
 async function saveSettings() {
   const selectedExchange = exchangeSelect.value;
   const leverage = parseInt(leverageValueInput.value) || 1;
-  const position = parseFloat(positionValueInput.value) || 100;
+  const position = splitEntryStrategy.positions[0] || 100; // Use first position for total
   const stoploss = parseFloat(stoplossValueInput.value) || 2;
-  // const tradingMode = tradingModeSelect.value; // 제거됨
+  const tradingMode = tradingModeSelect?.value || 'oneway';
+  const autoRefresh = parseInt(autoRefreshInterval?.value) || 0;
   
   await chrome.storage.local.set({
     isTrading: isTrading,
     selectedExchange: selectedExchange,
     leverage: leverage,
     position: position,
-    stoploss: stoploss
+    stoploss: stoploss,
+    tradingMode: tradingMode,
+    autoRefresh: autoRefresh
   });
-  console.log('✅ 설정 저장됨:', { isTrading, selectedExchange, leverage, position, stoploss });
+  console.log('✅ 설정 저장됨:', { isTrading, selectedExchange, leverage, position, stoploss, tradingMode, autoRefresh });
+  
+  // 자동 새로고침 타이머 업데이트 (Auto Trading이 ON일 때만)
+  if (isTrading) {
+    setupAutoRefresh(autoRefresh);
+  } else {
+    // Auto Trading이 OFF면 타이머 중지
+    setupAutoRefresh(0);
+  }
 }
 
 // 셀렉터 설정 저장
@@ -1115,7 +1564,7 @@ async function savePriceSelectorSettings(selector) {
 
 // 설정 불러오기
 async function loadSettings() {
-  const result = await chrome.storage.local.get(['isTrading', 'selectedExchange', 'balanceSelector', 'priceSelector', 'leverage', 'position', 'stoploss']);
+  const result = await chrome.storage.local.get(['isTrading', 'selectedExchange', 'balanceSelector', 'priceSelector', 'leverage', 'position', 'stoploss', 'tradingMode', 'autoRefresh']);
   console.log('✅ 저장된 설정:', result);
   
   if (result.isTrading !== undefined) {
@@ -1136,21 +1585,29 @@ async function loadSettings() {
   if (result.leverage) {
     leverageValueInput.value = result.leverage;
   }
-  if (result.position !== undefined) {
-    positionValueInput.value = result.position;
-  } else {
-    // 기본값 100% 설정
-    positionValueInput.value = 100;
-  }
+  // Position loading is handled by loadSplitEntrySettings()
   if (result.stoploss !== undefined) {
     stoplossValueInput.value = result.stoploss;
   } else {
     // 기본값 2% 설정
     stoplossValueInput.value = 2;
   }
-  // if (result.tradingMode) {
-  //   tradingModeSelect.value = result.tradingMode;
-  // } // 제거됨
+  if (result.tradingMode && tradingModeSelect) {
+    tradingModeSelect.value = result.tradingMode;
+  } else if (tradingModeSelect) {
+    // 기본값 One Way Mode
+    tradingModeSelect.value = 'oneway';
+  }
+  if (result.autoRefresh !== undefined && autoRefreshInterval) {
+    autoRefreshInterval.value = result.autoRefresh;
+    // 자동 새로고침 타이머 설정 (Auto Trading이 ON일 때만)
+    if (isTrading && result.autoRefresh > 0 && result.autoRefresh <= 100) {
+      setupAutoRefresh(result.autoRefresh);
+    }
+  } else if (autoRefreshInterval) {
+    // 기본값 0 (새로고침 안 함)
+    autoRefreshInterval.value = 0;
+  }
   
   // 모든 셀렉터 로드
   if (result.balanceSelector) {
@@ -1205,69 +1662,87 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // 거래 시작 버튼 클릭 이벤트
-startBtn.addEventListener('click', async () => {
-  console.log('거래 시작 버튼 클릭됨');
+// 거래 토글 변경 이벤트
+tradingToggle.addEventListener('change', async (e) => {
+  const isChecked = e.target.checked;
   
-  // Check exchange selection
-  if (!exchangeSelect.value) {
-    alert('Please select an exchange first.');
-    return;
+  if (isChecked) {
+    // 거래 시작
+    console.log('거래 시작 토글 활성화');
+    
+    // Check exchange selection
+    if (!exchangeSelect.value) {
+      alert('Please select an exchange first.');
+      tradingToggle.checked = false;
+      return;
+    }
+    
+    // 상태 변경
+    isTrading = true;
+    updateUI();
+    
+    // 설정 저장
+    await saveSettings();
+    
+    // 자동 새로고침 시작 (Auto Trading ON일 때만)
+    const autoRefreshMinutes = parseInt(autoRefreshInterval?.value) || 0;
+    if (autoRefreshMinutes > 0 && autoRefreshMinutes <= 100) {
+      setupAutoRefresh(autoRefreshMinutes);
+    }
+    
+    // 주기적 자본금 추출 시작
+    console.log('거래 시작 - 주기적 추출 시작 시도');
+    startPeriodicExtraction();
+    
+    // 텔레그램 자동 연결 및 폴링 시작
+    const telegramStarted = await autoConnectAndStartTelegramPolling();
+    
+    if (!telegramStarted) {
+      console.log('💡 텔레그램 자동매매 비활성화 - 수동 매매만 가능');
+    }
+    
+    // 매크로 기반 자동 매매 준비
+    console.log('매크로 기반 자동 매매 준비 완료 (텔레그램 폴링 포함)');
+    initializeAutoTrading();
+    
+    // Background에 메시지 전송
+    await sendMessageToBackground({ 
+      action: 'startTrading', 
+      status: 'active',
+      exchange: exchangeSelect.value
+    });
+  } else {
+    // 거래 중단
+    console.log('거래 중단 토글 비활성화');
+    
+    // 상태 변경
+    isTrading = false;
+    updateUI();
+    
+    // 설정 저장
+    await saveSettings();
+    
+    // 자동 새로고침 중지 (Auto Trading OFF)
+    setupAutoRefresh(0);
+    
+    // 주기적 자본금 추출 중단
+    stopPeriodicExtraction();
+    
+    // 텔레그램 폴링 중단
+    await stopTelegramPolling();
+    
+    // Background에 메시지 전송
+    await sendMessageToBackground({ action: 'stopTrading', status: 'inactive' });
   }
-  
-  // 상태 변경
-  isTrading = true;
-  updateUI();
-  
-  // 설정 저장
-  await saveSettings();
-  
-  // 주기적 자본금 추출 시작
-  console.log('거래 시작 - 주기적 추출 시작 시도');
-  startPeriodicExtraction();
-  
-  // 텔레그램 폴링 시작 (연결되어 있는 경우)
-  await startTelegramPolling();
-  
-  // 매크로 기반 자동 매매 준비
-  console.log('매크로 기반 자동 매매 준비 완료 (텔레그램 폴링 포함)');
-  initializeAutoTrading();
-  
-  // Background에 메시지 전송
-  await sendMessageToBackground({ 
-    action: 'startTrading', 
-    status: 'active',
-    exchange: exchangeSelect.value
-  });
-});
-
-// 거래 중단 버튼 클릭 이벤트
-stopBtn.addEventListener('click', async () => {
-  console.log('거래 중단 버튼 클릭됨');
-  
-  // 상태 변경
-  isTrading = false;
-  updateUI();
-  
-  // 설정 저장
-  await saveSettings();
-  
-  // 주기적 자본금 추출 중단
-  stopPeriodicExtraction();
-  
-  // 텔레그램 폴링 중단
-  await stopTelegramPolling();
-  
-  // Background에 메시지 전송
-  await sendMessageToBackground({ action: 'stopTrading', status: 'inactive' });
 });
 
 // UI 업데이트 함수
 // Amount 계산 함수
-function calculateAmount() {
+// 특정 포지션 비율에 대한 Amount 계산
+function calculateAmountForPosition(positionPercent) {
   const assetsText = currentAssets.textContent.trim();
   const priceText = currentPrice.textContent.trim();
   const leverage = parseInt(leverageValueInput.value) || 1;
-  const position = parseFloat(positionValueInput.value) || 100;
   
   // Assets와 Price가 유효한 값인지 확인
   if (assetsText === '-' || priceText === '-') {
@@ -1283,23 +1758,81 @@ function calculateAmount() {
   }
   
   // Amount = Assets * Leverage * Position(%) / Price / 100
-  const amount = (assetsNum * leverage * position) / priceNum / 100;
+  const amount = (assetsNum * leverage * positionPercent) / priceNum / 100;
   
   // 소수점 4자리까지 표시
   return amount.toFixed(4);
 }
 
+function calculateAmount() {
+  const totalPosition = splitEntryStrategy.positions.reduce((sum, pos) => sum + pos, 0) || 100;
+  return calculateAmountForPosition(totalPosition);
+}
+
+
+// SL 가격 계산 함수
+function calculateSlPrice(entryPrice, position) {
+  const stoplossPercent = parseFloat(stoplossValueInput.value) || 0;
+  
+  if (stoplossPercent === 0 || stoplossPercent >= 100) {
+    console.warn('유효하지 않은 스탑로스 값:', stoplossPercent);
+    return null; // 유효하지 않은 값일 때 null 반환
+  }
+  
+  let slPrice;
+  if (position === 'long') {
+    // Long 포지션: 진입가보다 낮은 가격에서 손절
+    slPrice = entryPrice * (1 - stoplossPercent / 100);
+  } else {
+    // Short 포지션: 진입가보다 높은 가격에서 손절
+    slPrice = entryPrice * (1 + stoplossPercent / 100);
+  }
+  
+  // 소수점 자릿수 조정 (진입가에 따라)
+  if (entryPrice < 1) {
+    return slPrice.toFixed(6); // 1달러 미만: 소수점 6자리
+  } else if (entryPrice < 100) {
+    return slPrice.toFixed(4); // 100달러 미만: 소수점 4자리
+  } else {
+    return slPrice.toFixed(2); // 100달러 이상: 소수점 2자리
+  }
+}
+
+// 스탑로스 가격 표시 업데이트 함수
+function updateStopLossPriceDisplay() {
+  if (!stopLossPrice) {
+    console.warn('⚠️ stopLossPrice 요소를 찾을 수 없습니다.');
+    return;
+  }
+  
+  // 포지션이 활성화되어 있고 진입가가 있는 경우에만 표시
+  if (currentPosition.isActive && currentPosition.entryPrice && currentPosition.type) {
+    console.log(`🔍 SL 표시 체크: isActive=${currentPosition.isActive}, entryPrice=${currentPosition.entryPrice}, type=${currentPosition.type}`);
+    
+    const slPrice = calculateSlPrice(currentPosition.entryPrice, currentPosition.type);
+    console.log(`🔍 계산된 SL 가격: ${slPrice}`);
+    
+    if (slPrice && !isNaN(slPrice)) {
+      stopLossPrice.textContent = `(${slPrice})`;
+      stopLossPrice.style.display = 'block';
+      console.log(`✅ SL 가격 표시 업데이트: ${slPrice} (진입가: ${currentPosition.entryPrice}, 포지션: ${currentPosition.type})`);
+    } else {
+      console.warn('⚠️ SL 가격 계산 실패 또는 유효하지 않음:', slPrice);
+      stopLossPrice.style.display = 'none';
+    }
+  } else {
+    console.log(`ℹ️ SL 표시 조건 불충족: isActive=${currentPosition.isActive}, entryPrice=${currentPosition.entryPrice}, type=${currentPosition.type}`);
+    stopLossPrice.style.display = 'none';
+  }
+}
+
 function updateUI() {
   if (isTrading) {
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    statusDot.classList.add('active');
-    statusText.textContent = 'Trading';
+    tradingToggle.checked = true;
+    tradingToggle.disabled = false;
   } else {
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    statusDot.classList.remove('active');
-    statusText.textContent = 'Standby';
+    tradingToggle.checked = false;
+    tradingToggle.disabled = false;
   }
 }
 
@@ -1477,6 +2010,11 @@ document.addEventListener('keydown', (event) => {
       isShortRecording = false;
       console.log('ESC로 Short 녹화 중단');
     }
+    if (isCloseRecording) {
+      stopMacroRecording('close');
+      isCloseRecording = false;
+      console.log('ESC로 Close 녹화 중단');
+    }
   }
 });
 
@@ -1596,8 +2134,21 @@ async function testTelegramConnection() {
       // 설정 저장
       await saveTelegramSettings();
       
-      // UI 업데이트 - 연결 성공 시 Start Trading 버튼 활성화
-      // (텔레그램 연결이 되어야 자동매매 가능)
+      // 신호 파서 초기화 (심볼이 설정된 경우)
+      if (userSymbol) {
+        if (typeof SignalParser !== 'undefined') {
+          signalParser = new SignalParser(userSymbol);
+          console.log(`📊 신호 파서 초기화 완료: ${userSymbol}`);
+        } else {
+          console.warn('SignalParser 클래스가 로드되지 않았습니다');
+        }
+      }
+      
+      // 자동매매가 이미 실행 중이면 폴링도 자동 시작
+      if (isTrading && !isTelegramTrading) {
+        console.log('🔄 자동매매 실행 중 - 텔레그램 폴링 자동 시작');
+        await startTelegramPolling();
+      }
       
       console.log('텔레그램 연결 성공:', result.botInfo);
     } else {
@@ -1616,8 +2167,14 @@ function updateTelegramSymbol() {
   const userSymbol = userSymbolInput.value.trim().toUpperCase();
   
   if (telegramBot) {
-    // 여기서는 봇 인스턴스에 심볼 설정 기능이 없으므로 설정만 저장
+    // 설정 저장
     saveTelegramSettings();
+    
+    // 신호 파서 업데이트
+    if (userSymbol && typeof SignalParser !== 'undefined') {
+      signalParser = new SignalParser(userSymbol);
+      console.log(`📊 신호 파서 업데이트: ${userSymbol}`);
+    }
     
     const symbolInfo = userSymbol ? userSymbol : 'All symbols';
     showTelegramStatus(`Symbol updated: ${symbolInfo}`, 'info');
@@ -1626,7 +2183,66 @@ function updateTelegramSymbol() {
   }
 }
 
-// 텔레그램 폴링 시작 (상단 Start Trading 버튼에서 호출)
+// 텔레그램 자동 연결 및 폴링 시작 (Start Trading 버튼에서 호출)
+async function autoConnectAndStartTelegramPolling() {
+  try {
+    console.log('🔄 텔레그램 자동 연결 시도...');
+    
+    // 1. 저장된 텔레그램 설정 로드
+    const result = await chrome.storage.local.get(['telegramSettings']);
+    const settings = result.telegramSettings;
+    
+    if (!settings || !settings.botToken || !settings.chatId || !settings.userSymbol) {
+      console.log('❌ 텔레그램 설정이 불완전함');
+      return false;
+    }
+    
+    console.log('✅ 텔레그램 설정 확인됨:', {
+      botToken: settings.botToken ? 'Set' : 'Empty',
+      chatId: settings.chatId || 'Empty',
+      userSymbol: settings.userSymbol || 'Empty'
+    });
+    
+    // 2. TelegramBot 인스턴스 생성 (기존 인스턴스가 없거나 설정이 다른 경우)
+    if (!telegramBot || 
+        telegramBot.botToken !== settings.botToken || 
+        telegramBot.chatId !== settings.chatId) {
+      
+      console.log('🔧 새 TelegramBot 인스턴스 생성...');
+      telegramBot = new TelegramBot(settings.botToken, settings.chatId);
+      
+      // 3. 연결 테스트
+      const connectionTest = await telegramBot.testConnection();
+      if (!connectionTest.success) {
+        console.error('❌ 텔레그램 연결 테스트 실패:', connectionTest.error);
+        showTelegramStatus(`연결 실패: ${connectionTest.error}`, 'error');
+        return false;
+      }
+      
+      console.log('✅ 텔레그램 연결 테스트 성공:', connectionTest.botInfo.username);
+    } else {
+      console.log('✅ 기존 TelegramBot 인스턴스 재사용');
+    }
+    
+    // 4. SignalParser 자동 초기화
+    if (settings.userSymbol && typeof SignalParser !== 'undefined') {
+      signalParser = new SignalParser(settings.userSymbol);
+      console.log(`📊 SignalParser 자동 초기화: ${settings.userSymbol}`);
+    } else {
+      console.warn('⚠️ SignalParser 초기화 실패 - 심볼 또는 클래스 없음');
+    }
+    
+    // 5. 폴링 시작
+    return await startTelegramPolling();
+    
+  } catch (error) {
+    console.error('❌ 텔레그램 자동 연결 실패:', error);
+    showTelegramStatus(`자동 연결 실패: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+// 텔레그램 폴링 시작 (내부 함수)
 async function startTelegramPolling() {
   try {
     if (!telegramBot) {
@@ -1658,17 +2274,31 @@ async function startTelegramPolling() {
     signalParser = new SignalParser(userSymbol);
     console.log(`📊 신호 파서 초기화 완료: ${userSymbol}`);
     
+    // 중복 처리 방지 변수 초기화
+    lastProcessedMessageId = 0;
+    processedMessageIds.clear();
+    
+    // 매크로 실행 중복 방지 변수 초기화
+    isExecutingTrade = false;
+    executingTradeType = null;
+    lastTradeTime = 0;
+    
+    console.log('🔄 중복 처리 방지 변수 초기화 완료');
+    
     // 폴링 시작 (3초 간격)
     telegramPollingInterval = setInterval(async () => {
       await pollTelegramMessages();
     }, 3000);
     
+    // 매크로 상태 모니터링 시작
+    startMacroStatusMonitoring();
+    
     isTelegramTrading = true;
     
     // 시작 알림 전송
-    await telegramBot.sendMessage(`🤖 Auto trading started (${userSymbol} only)`);
+    await telegramBot.sendMessage(lang.t('auto_trading_started', { symbol: userSymbol }));
     
-    console.log('텔레그램 폴링 시작됨');
+    console.log('텔레그램 폴링 및 매크로 모니터링 시작됨');
     return true;
     
   } catch (error) {
@@ -1685,17 +2315,72 @@ async function stopTelegramPolling() {
       telegramPollingInterval = null;
     }
     
+    // 매크로 상태 모니터링 중단
+    stopMacroStatusMonitoring();
+    
+    // 매크로 실행 상태 초기화
+    isExecutingTrade = false;
+    executingTradeType = null;
+    tradeExecutionStartTime = 0;
+    
     isTelegramTrading = false;
     
     // 중단 알림 전송
     if (telegramBot) {
-      await telegramBot.sendMessage('⏸️ Auto trading stopped');
+      await telegramBot.sendMessage(lang.t('auto_trading_stopped'));
     }
     
-    console.log('텔레그램 폴링 중단됨');
+    console.log('텔레그램 폴링 및 매크로 모니터링 중단됨');
     
   } catch (error) {
     console.error('텔레그램 폴링 중단 실패:', error);
+  }
+}
+
+// 중복 처리 방지를 위한 변수
+let lastProcessedMessageId = 0;
+let processedMessageIds = new Set();
+
+// 매크로 실행 중복 방지를 위한 변수
+let isExecutingTrade = false;
+let lastTradeTime = 0;
+let executingTradeType = null;
+let tradeExecutionStartTime = 0;
+const MIN_TRADE_INTERVAL = 3000; // 최소 3초 간격 (조정 가능)
+const MAX_EXECUTION_TIME = 60000; // 최대 60초 실행 시간 (자동 잠금 해제)
+
+// 매크로 실행 상태 모니터링 (안전장치)
+let macroStatusCheckInterval = null;
+
+function startMacroStatusMonitoring() {
+  if (macroStatusCheckInterval) {
+    clearInterval(macroStatusCheckInterval);
+  }
+  
+  macroStatusCheckInterval = setInterval(() => {
+    if (isExecutingTrade && tradeExecutionStartTime > 0) {
+      const executionTime = Date.now() - tradeExecutionStartTime;
+      
+      // 60초 초과 시 강제 해제
+      if (executionTime > MAX_EXECUTION_TIME) {
+        console.log(`🚨 매크로 실행 시간 초과 감지 - 강제 해제 (${Math.round(executionTime/1000)}초)`);
+        isExecutingTrade = false;
+        executingTradeType = null;
+        tradeExecutionStartTime = 0;
+        
+        // 텔레그램 알림
+        if (telegramBot) {
+          telegramBot.sendMessage(`🚨 Macro execution timeout detected - automatically released after ${Math.round(executionTime/1000)}s`);
+        }
+      }
+    }
+  }, 5000); // 5초마다 체크
+}
+
+function stopMacroStatusMonitoring() {
+  if (macroStatusCheckInterval) {
+    clearInterval(macroStatusCheckInterval);
+    macroStatusCheckInterval = null;
   }
 }
 
@@ -1710,7 +2395,33 @@ async function pollTelegramMessages() {
       console.log(`${messages.length}개의 새 메시지 수신:`, messages);
       
       for (const message of messages) {
+        // 중복 처리 방지 - messageId 기반
+        if (message.messageId <= lastProcessedMessageId) {
+          console.log(`⏭️ 이미 처리된 메시지 건너뛰기: ${message.messageId}`);
+          continue;
+        }
+        
+        // Set을 이용한 추가 중복 방지
+        if (processedMessageIds.has(message.messageId)) {
+          console.log(`⏭️ Set에서 중복 메시지 감지: ${message.messageId}`);
+          continue;
+        }
+        
+        console.log(`🆕 새 메시지 처리: ID=${message.messageId}, Text="${message.text}"`);
+        
+        // 메시지 처리
         await processSignalMessage(message);
+        
+        // 처리 완료 후 ID 업데이트
+        lastProcessedMessageId = message.messageId;
+        processedMessageIds.add(message.messageId);
+        
+        // Set 크기 제한 (메모리 관리)
+        if (processedMessageIds.size > 100) {
+          const oldestIds = Array.from(processedMessageIds).slice(0, 50);
+          oldestIds.forEach(id => processedMessageIds.delete(id));
+          console.log('📝 오래된 메시지 ID 정리 완료');
+        }
       }
     }
   } catch (error) {
@@ -1735,6 +2446,80 @@ async function processSignalMessage(message) {
       return;
     }
     
+    // DEBUG 명령어 처리 (디버깅용)
+    if (message.text.toUpperCase().includes('DEBUG')) {
+      const debugInfo = lang.t('debug_info') + `\n` +
+        lang.t('symbol_setting', { symbol: signalParser?.userSymbol || 'None' }) + `\n` +
+        lang.t('parser_status', { status: signalParser ? '✅' : '❌' }) + `\n` +
+        lang.t('bot_status', { status: telegramBot ? '✅' : '❌' }) + `\n` +
+        lang.t('trading_status', { status: isTelegramTrading ? 'Running' : 'Stopped' }) + `\n` +
+        lang.t('macro_status', { status: isExecutingTrade ? `✅ (${executingTradeType}, ${Math.round((Date.now() - tradeExecutionStartTime)/1000)}s elapsed)` : '❌' }) + `\n` +
+        lang.t('last_trade', { time: lastTradeTime > 0 ? new Date(lastTradeTime).toLocaleTimeString() : 'None' }) + `\n` +
+        lang.t('screenshot_feature') + `\n` +
+        `\n` + lang.t('test_commands');
+      
+      await telegramBot.sendMessage(debugInfo);
+      return;
+    }
+    
+    // PARSE 명령어 처리 (신호 파싱 테스트용)
+    if (message.text.toUpperCase().startsWith('PARSE ')) {
+      const testMessage = message.text.substring(6); // "PARSE " 제거
+      const parsed = signalParser?.parseSignal(testMessage);
+      const validation = parsed ? signalParser.validateSignal(parsed) : null;
+      
+      const result = lang.t('parsing_test_success') + `\n` +
+        lang.t('parsing_input', { input: testMessage }) + `\n` +
+        lang.t('parsing_result', { result: parsed ? '✅' : '❌' }) + `\n` +
+        (parsed ? lang.t('parsing_symbol', { symbol: parsed.symbol }) + `\n` + lang.t('parsing_action', { action: parsed.action }) + `\n` : '') +
+        lang.t('parsing_validation', { result: validation?.valid ? '✅' : '❌' }) + `\n` +
+        (validation && !validation.valid ? lang.t('parsing_error', { error: validation.reason }) : '');
+      
+      await telegramBot.sendMessage(result);
+      return;
+    }
+    
+    // SCREENSHOT 명령어 처리 (스크린샷 테스트용)
+    if (message.text.toUpperCase().includes('SCREENSHOT')) {
+      console.log('📸 스크린샷 테스트 시작...');
+      
+      try {
+        const screenshot = await telegramBot.captureScreenshot();
+        if (screenshot) {
+          const result = await telegramBot.sendPhoto(screenshot, lang.t('screenshot_caption'));
+          if (result.success) {
+            await telegramBot.sendMessage(lang.t('screenshot_test_success'));
+          } else {
+            await telegramBot.sendMessage(lang.t('screenshot_send_failed', { error: result.error }));
+          }
+        }
+      } catch (error) {
+        await telegramBot.sendMessage(lang.t('screenshot_capture_failed', { error: error.message }));
+      }
+      return;
+    }
+    
+    // UNLOCK 명령어 처리 (매크로 잠금 강제 해제)
+    if (message.text.toUpperCase().includes('UNLOCK')) {
+      console.log('🔓 매크로 잠금 강제 해제 시도...');
+      
+      const wasLocked = isExecutingTrade;
+      const previousType = executingTradeType;
+      
+      // 강제 잠금 해제
+      isExecutingTrade = false;
+      executingTradeType = null;
+      lastTradeTime = 0;
+      
+      const unlockMessage = wasLocked 
+        ? `🔓 Macro lock released successfully!\nPrevious state: ${previousType} executing\nReady to process new trading signals.`
+        : `ℹ️ Macro was not locked.\nCurrent state: Normal (ready to process trading signals)`;
+      
+      await telegramBot.sendMessage(unlockMessage);
+      console.log('🔓 매크로 잠금 강제 해제 완료');
+      return;
+    }
+    
     // 신호 파싱
     if (!signalParser) {
       console.log('❌ signalParser가 초기화되지 않음');
@@ -1756,8 +2541,11 @@ async function processSignalMessage(message) {
     if (!validation.valid) {
       console.log(`❌ 신호 검증 실패: ${validation.reason}`);
       
-      // 심볼 불일치인 경우에는 텔레그램 알림 보내지 않음 (스팸 방지)
-      if (!validation.reason.includes('심볼 불일치')) {
+      // 심볼 불일치나 심볼 없음 경우에는 텔레그램 알림 보내지 않음 (스팸 방지)
+      const silentErrors = ['심볼 불일치', '심볼이 없음', '파싱된 신호가 없음'];
+      const shouldNotify = !silentErrors.some(error => validation.reason.includes(error));
+      
+      if (shouldNotify) {
         await telegramBot.sendMessage(`⚠️ 신호 처리 실패: ${validation.reason}`);
       }
       return;
@@ -1779,46 +2567,174 @@ async function executeAutoTrade(signal) {
   try {
     console.log(`🚀 자동 매크로 실행 시작: ${signal.action} ${signal.symbol}`);
     
-    let macroResult;
+    // 🔒 중복 실행 방지 체크
+    const now = Date.now();
     
+    // 1. 현재 매크로 실행 중인지 확인
+    if (isExecutingTrade) {
+      // 자동 잠금 해제 체크 (60초 초과 시)
+      const executionTime = now - tradeExecutionStartTime;
+      if (executionTime > MAX_EXECUTION_TIME) {
+        console.log(`⚠️ 매크로 실행 시간 초과 (${executionTime}ms) - 자동 잠금 해제`);
+        isExecutingTrade = false;
+        executingTradeType = null;
+        tradeExecutionStartTime = 0;
+        await telegramBot.sendMessage(`⚠️ Macro execution timeout - lock automatically released. Starting new trade.`);
+      } else {
+        console.log(`⚠️ 매크로 실행 중복 방지: 이미 ${executingTradeType} 매크로 실행 중 (${Math.round(executionTime/1000)}초 경과)`);
+        // 메시지 전송하지 않고 조용히 무시
+        return;
+      }
+    }
+    
+    // 2. 최소 거래 간격 확인 (5초)
+    const timeSinceLastTrade = now - lastTradeTime;
+    if (timeSinceLastTrade < MIN_TRADE_INTERVAL) {
+      const remainingTime = Math.ceil((MIN_TRADE_INTERVAL - timeSinceLastTrade) / 1000);
+      console.log(`⚠️ 거래 간격 제한: ${remainingTime}초 후 재시도 가능`);
+      await telegramBot.sendMessage(lang.t('cooldown_message', { seconds: remainingTime }));
+      return;
+    }
+    
+    // 3. 매크로 실행 상태 설정
+    isExecutingTrade = true;
+    executingTradeType = signal.action;
+    lastTradeTime = now;
+    tradeExecutionStartTime = now;
+    
+    console.log(`🔒 매크로 실행 잠금: ${signal.action} (${new Date().toLocaleTimeString()})`);
+    
+    // 분할 진입 실행 (메시지 수신 시 다음 단계만 실행)
+    let tradeType;
     if (signal.action === 'LONG') {
-      // Long 매크로 실행
-      macroResult = await executeLongMacro();
-      
+      tradeType = 'long';
     } else if (signal.action === 'SHORT') {
-      // Short 매크로 실행  
-      macroResult = await executeShortMacro();
-      
+      tradeType = 'short';
     } else {
       throw new Error(`지원하지 않는 액션: ${signal.action}`);
     }
     
+    // 분할 진입 실행 (타임아웃 적용)
+    const splitEntryResult = await Promise.race([
+      executeSplitEntry(tradeType),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Split entry execution timeout (30s)')), 30000)
+      )
+    ]);
+    
     // 실행 결과에 따른 알림 전송
-    if (macroResult && macroResult.success) {
-      const successMessage = `✅ ${signal.symbol} ${signal.action} 매크로 실행 성공!\n` +
-                           `📊 신호: ${signal.originalMessage}\n` +
-                           `⏰ 실행 시간: ${new Date().toLocaleString('ko-KR')}`;
+    if (splitEntryResult && splitEntryResult.success) {
+      const stepInfo = splitEntryResult.isComplete 
+        ? `✅ 분할 진입 완료: ${splitEntryResult.totalSteps}단계 모두 실행됨`
+        : `✅ ${splitEntryResult.step}/${splitEntryResult.totalSteps}단계 진입 완료`;
       
-      await telegramBot.sendMessage(successMessage);
-      console.log('✅ 자동 매크로 실행 성공');
+      // 현재 단계의 amount 계산
+      const activePositions = splitEntryStrategy.positions
+        .map((pos, index) => ({ value: pos, index }))
+        .filter(item => item.value > 0);
       
+      const currentStepIndex = activePositions.findIndex((item, idx) => {
+        const originalIndex = item.index;
+        return !splitEntryStrategy.executedEntries[originalIndex];
+      });
+      
+      let currentAmount = calculateAmount();
+      if (currentStepIndex >= 0 && currentStepIndex < activePositions.length) {
+        currentAmount = calculateAmountForPosition(activePositions[currentStepIndex].value);
+      }
+      
+      const successMessage = lang.t('trade_success', { symbol: signal.symbol, action: signal.action }) + `\n` +
+                           lang.t('signal_info', { message: signal.originalMessage }) + `\n` +
+                           `${stepInfo}\n` +
+                           lang.t('amount_info', { amount: currentAmount }) + `\n` +
+                           lang.t('time_info', { time: new Date().toLocaleString() });
+      
+      // 스크린샷과 함께 메시지 전송
+      await telegramBot.sendMessageWithScreenshot(successMessage, true);
+      console.log('✅ Auto split entry step execution successful (with screenshot)');
+    } else if (splitEntryResult && splitEntryResult.allStepsComplete) {
+      // 모든 단계가 완료된 경우 알림 (진입하지 않음)
+      const infoMessage = lang.t('trade_info', { symbol: signal.symbol, action: signal.action }) + `\n` +
+                         lang.t('signal_info', { message: signal.originalMessage }) + `\n` +
+                         `⚠️ 모든 분할 진입 단계가 완료되었습니다.\n` +
+                         `포지션이 정리(SL/TP/Close)된 후 다시 진입할 수 있습니다.\n` +
+                         lang.t('time_info', { time: new Date().toLocaleString() });
+      
+      // 정보 메시지 전송 (스크린샷 없이)
+      await telegramBot.sendMessage(infoMessage);
+      console.log('ℹ️ All split entry steps completed - waiting for position closure');
     } else {
-      const errorMessage = `❌ ${signal.symbol} ${signal.action} 매크로 실행 실패\n` +
-                          `📊 신호: ${signal.originalMessage}\n` +
-                          `🚨 오류: ${macroResult?.error || '알 수 없는 오류'}`;
+      const errorMessage = lang.t('trade_failed', { symbol: signal.symbol, action: signal.action }) + `\n` +
+                          lang.t('signal_info', { message: signal.originalMessage }) + `\n` +
+                          lang.t('error_info', { error: splitEntryResult?.error || 'Unknown error' });
       
-      await telegramBot.sendMessage(errorMessage);
-      console.log('❌ 자동 매크로 실행 실패:', macroResult?.error);
+      // 실패 시에도 스크린샷과 함께 메시지 전송
+      await telegramBot.sendMessageWithScreenshot(errorMessage, true);
+      console.log('❌ Auto split entry step execution failed (with screenshot):', splitEntryResult?.error);
     }
     
   } catch (error) {
     console.error('자동 매크로 실행 오류:', error);
     
-    const errorMessage = `❌ ${signal.symbol} ${signal.action} 매크로 실행 중 오류 발생\n` +
-                        `📊 신호: ${signal.originalMessage}\n` +
-                        `🚨 오류: ${error.message}`;
+    const errorMessage = lang.t('trade_error', { symbol: signal.symbol, action: signal.action }) + `\n` +
+                        lang.t('signal_info', { message: signal.originalMessage }) + `\n` +
+                        lang.t('error_info', { error: error.message });
     
-    await telegramBot.sendMessage(errorMessage);
+    // 오류 시에도 스크린샷과 함께 메시지 전송 (문제 진단용)
+    await telegramBot.sendMessageWithScreenshot(errorMessage, true);
+  } finally {
+    // 🔓 매크로 실행 잠금 해제 (성공/실패 관계없이 항상 실행)
+    const executionTime = Date.now() - tradeExecutionStartTime;
+    isExecutingTrade = false;
+    executingTradeType = null;
+    tradeExecutionStartTime = 0;
+    console.log(`🔓 매크로 실행 잠금 해제 (실행 시간: ${Math.round(executionTime/1000)}초, ${new Date().toLocaleTimeString()})`);
+  }
+}
+
+// 텔레그램용 매크로 실행 함수
+async function executeTelegramMacro(type, amount) {
+  try {
+    console.log(`📱 텔레그램 매크로 실행: ${type}, Amount: ${amount}`);
+    
+    // 매크로 존재 여부 확인
+    const macros = await loadMacros();
+    const macroKey = `${type}Macro`;
+    
+    if (!macros[macroKey] || macros[macroKey].length === 0) {
+      throw new Error(`${type} 매크로가 녹화되지 않았습니다.`);
+    }
+    
+    // 현재 탭 확인
+    const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    if (!tab) {
+      throw new Error('활성 탭을 찾을 수 없습니다.');
+    }
+    
+    // Content Script에 스마트 거래 실행 요청 (타임아웃 적용)
+    const response = await Promise.race([
+      sendMessageToContentScript({
+        action: 'executeSmartTrade',
+        tradeType: type,
+        amount: amount
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Content script communication timeout')), 25000)
+      )
+    ]);
+    
+    console.log(`${type} 텔레그램 매크로 실행 완료:`, response);
+    
+    if (response && response.success) {
+      console.log(`✅ ${type} 텔레그램 매크로 실행 성공`);
+      return { success: true, message: response.message };
+    } else {
+      throw new Error(response?.error || '매크로 실행 실패');
+    }
+    
+  } catch (error) {
+    console.error(`❌ ${type} 텔레그램 매크로 실행 실패:`, error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -1830,14 +2746,591 @@ if (userSymbolInput) {
   userSymbolInput.addEventListener('change', updateTelegramSymbol);
 }
 
-// 기존 DOMContentLoaded 이벤트에 텔레그램 설정 로드 추가
+// 데이터 표시 업데이트 함수
+// 현재 포지션 상태 추적
+let currentPosition = {
+  type: null, // 'long' or 'short'
+  entryPrice: null,
+  entryTime: null,
+  isActive: false
+};
+
+// Stoploss 모니터링 및 자동 Close 실행 (중복 실행 방지)
+let isExecutingStoploss = false;
+
+function checkAndExecuteStoploss() {
+  try {
+    // 이미 실행 중이면 건너뜀
+    if (isExecutingStoploss) return;
+    
+    // 포지션이 활성화되어 있고 진입가가 있는 경우에만 체크
+    if (!currentPosition.isActive || !currentPosition.entryPrice || !currentPosition.type) {
+      return;
+    }
+    
+    // 현재가 확인
+    const currentPriceText = currentPrice.textContent.trim();
+    if (currentPriceText === '-') return;
+    
+    const currentPriceValue = parseFloat(currentPriceText.replace(/[^0-9.-]/g, ''));
+    if (isNaN(currentPriceValue) || currentPriceValue === 0) return;
+    
+    // 스탑로스 값 확인
+    const stoplossPercent = parseFloat(stoplossValueInput.value) || 0;
+    if (stoplossPercent === 0 || stoplossPercent >= 100) return;
+    
+    // 스탑로스 가격 계산
+    const slPrice = parseFloat(calculateSlPrice(currentPosition.entryPrice, currentPosition.type));
+    if (isNaN(slPrice) || slPrice === 0) return;
+    
+    // Stoploss 도달 확인
+    let stoplossTriggered = false;
+    if (currentPosition.type === 'long') {
+      // Long: 현재가 <= 스탑로스 가격
+      stoplossTriggered = currentPriceValue <= slPrice;
+    } else {
+      // Short: 현재가 >= 스탑로스 가격
+      stoplossTriggered = currentPriceValue >= slPrice;
+    }
+    
+    if (stoplossTriggered) {
+      isExecutingStoploss = true;
+      console.log(`🛑 Stoploss 도달! 현재가: ${currentPriceValue}, SL 가격: ${slPrice}, 포지션: ${currentPosition.type}`);
+      
+      // Manual Close 실행
+      executeSmartTrade('close', null).then(result => {
+        if (result && result.success) {
+          console.log('✅ Stoploss로 인한 포지션 종료 완료');
+          resetSplitEntryState();
+          currentPosition.isActive = false;
+          currentPosition.entryPrice = null;
+          currentPosition.type = null;
+          updateStopLossPriceDisplay();
+        }
+        
+        // 최소 2초 후에 다시 체크 가능하도록 설정 (중복 실행 방지)
+        setTimeout(() => {
+          isExecutingStoploss = false;
+        }, 2000);
+      }).catch(error => {
+        console.error('❌ Stoploss Close 실행 오류:', error);
+        isExecutingStoploss = false;
+      });
+    }
+    
+  } catch (error) {
+    console.error('Stoploss 체크 오류:', error);
+    isExecutingStoploss = false;
+  }
+}
+
+function updateDataDisplay() {
+  // Assets, Price, Amount 값들이 실시간으로 표시되도록 업데이트
+  // 이미 currentAssets.textContent, currentPrice.textContent, currentAmount.textContent로 
+  // 실시간 업데이트되고 있으므로 추가 작업 불필요
+  
+  // TP 자동 모니터링 (포지션이 활성화된 경우에만)
+  if (currentPosition.isActive && currentPosition.entryPrice) {
+    checkAndExecuteTp();
+  }
+  
+  // Stoploss 자동 모니터링 (포지션이 활성화된 경우에만)
+  if (currentPosition.isActive && currentPosition.entryPrice) {
+    checkAndExecuteStoploss();
+  }
+  
+  // 스탑로스 가격 표시 업데이트
+  updateStopLossPriceDisplay();
+}
+
+// Phase 8 테스트 함수
+function testPhase8() {
+  console.log('🧪 Phase 8 수동 테스트 시작...');
+  
+  // SignalParser 테스트
+  if (typeof SignalParser !== 'undefined') {
+    SignalParser.testPhase8Integration('BTC');
+  } else {
+    console.error('❌ SignalParser 클래스가 로드되지 않았습니다');
+  }
+  
+  // 텔레그램 봇 상태 확인
+  if (telegramBot) {
+    console.log('✅ TelegramBot 인스턴스 존재');
+    console.log('   봇 설정:', telegramBot.getDebugInfo());
+  } else {
+    console.log('❌ TelegramBot 인스턴스 없음');
+  }
+  
+  // 신호 파서 상태 확인
+  if (signalParser) {
+    console.log('✅ SignalParser 인스턴스 존재');
+    console.log('   설정된 심볼:', signalParser.userSymbol);
+  } else {
+    console.log('❌ SignalParser 인스턴스 없음');
+  }
+  
+  console.log('🧪 Phase 8 테스트 완료');
+}
+
+// 전역에서 테스트 함수 사용 가능하도록 설정
+window.testPhase8 = testPhase8;
+
+// Language system integration
+function initializeLanguageSystem() {
+  // Load language settings and update UI
+  lang.loadLanguageSettings().then(() => {
+    updateLanguageUI();
+    setupLanguageSelector();
+  });
+}
+
+function updateLanguageUI() {
+  // Update all elements with data-lang attributes
+  const elements = document.querySelectorAll('[data-lang]');
+  elements.forEach(element => {
+    const key = element.getAttribute('data-lang');
+    const translation = lang.t(key);
+    
+    if (element.tagName === 'INPUT' && element.type !== 'button') {
+      element.placeholder = translation;
+    } else {
+      element.textContent = translation;
+    }
+  });
+  
+  // Update select options
+  const exchangeSelect = document.getElementById('exchangeSelect');
+  if (exchangeSelect && exchangeSelect.options[0]) {
+    exchangeSelect.options[0].textContent = lang.t('exchange_select');
+  }
+}
+
+function setupLanguageSelector() {
+  const languageSelect = document.getElementById('languageSelect');
+  if (languageSelect) {
+    // Set current language
+    languageSelect.value = lang.getCurrentLanguage();
+    
+    // Add change event listener
+    languageSelect.addEventListener('change', (e) => {
+      const newLanguage = e.target.value;
+      lang.setLanguage(newLanguage);
+      updateLanguageUI();
+      console.log(`Language changed to: ${newLanguage}`);
+    });
+  }
+}
+
+// Custom TP Strategy System
+let customTpStrategy = {
+  type: 'simple', // 'simple', 'trailing', 'split'
+  simpleTp: 5,
+  trailingDistance: 2,
+  splitTp: [3, 6, 10], // Split TP percentages
+  entryPrice: null,
+  maxProfit: 0,
+  trailingStopPrice: null
+};
+
+// Split Entry System
+let splitEntryStrategy = {
+  positions: [100, 0, 0], // Position percentages
+  entryPrices: [null, null, null],
+  executedEntries: [false, false, false],
+  triggerPercents: [0, -2, -5] // Entry triggers (0%, -2%, -5%)
+};
+
+// Split TP System
+let splitTpStrategy = {
+  tpLevels: [3, 6, 10], // TP percentages
+  executedTps: [false, false, false],
+  positionSizes: [33.33, 33.33, 33.34] // Equal position splits for TP
+};
+
+function initializeCustomTpSystem() {
+  const strategySelect = document.getElementById('tpStrategySelect');
+  const simpleTpSettings = document.getElementById('simpleTpSettings');
+  const trailingTpSettings = document.getElementById('trailingTpSettings');
+  const splitTpSettings = document.getElementById('splitTpSettings');
+  
+  // Strategy selector change event
+  strategySelect.addEventListener('change', (e) => {
+    const selectedStrategy = e.target.value;
+    customTpStrategy.type = selectedStrategy;
+    
+    // Hide all settings
+    simpleTpSettings.style.display = 'none';
+    trailingTpSettings.style.display = 'none';
+    splitTpSettings.style.display = 'none';
+    
+    // Show selected strategy settings
+    switch(selectedStrategy) {
+      case 'simple':
+        simpleTpSettings.style.display = 'flex';
+        break;
+      case 'trailing':
+        trailingTpSettings.style.display = 'flex';
+        break;
+      case 'split':
+        splitTpSettings.style.display = 'flex';
+        break;
+    }
+    
+    saveCustomTpSettings();
+  });
+  
+  // Input change events for saving settings
+  document.getElementById('simpleTpValue').addEventListener('change', (e) => {
+    customTpStrategy.simpleTp = parseFloat(e.target.value);
+    saveCustomTpSettings();
+  });
+  
+  document.getElementById('trailingDistance').addEventListener('change', (e) => {
+    customTpStrategy.trailingDistance = parseFloat(e.target.value);
+    saveCustomTpSettings();
+  });
+  
+  // Split TP input events
+  ['splitTp1', 'splitTp2', 'splitTp3'].forEach((id, index) => {
+    document.getElementById(id).addEventListener('change', (e) => {
+      customTpStrategy.splitTp[index] = parseFloat(e.target.value) || 0;
+      saveCustomTpSettings();
+    });
+  });
+  
+  // Position split input events
+  ['position1', 'position2', 'position3'].forEach((id, index) => {
+    document.getElementById(id).addEventListener('change', (e) => {
+      splitEntryStrategy.positions[index] = parseFloat(e.target.value) || 0;
+      validatePositionTotal();
+      saveSplitEntrySettings();
+    });
+  });
+  
+  // Load saved settings
+  loadCustomTpSettings();
+  loadSplitEntrySettings();
+}
+
+
+// Position validation
+function validatePositionTotal() {
+  const total = splitEntryStrategy.positions.reduce((sum, pos) => sum + pos, 0);
+  if (total > 100) {
+    console.warn(`Position total exceeds 100%: ${total}%`);
+    // Could show warning to user
+  }
+  return total;
+}
+
+// Split entry functions
+async function saveSplitEntrySettings() {
+  try {
+    await chrome.storage.local.set({ splitEntryStrategy });
+    console.log('Split entry settings saved');
+  } catch (error) {
+    console.error('Failed to save split entry settings:', error);
+  }
+}
+
+async function loadSplitEntrySettings() {
+  try {
+    const result = await chrome.storage.local.get(['splitEntryStrategy']);
+    if (result.splitEntryStrategy) {
+      splitEntryStrategy = { ...splitEntryStrategy, ...result.splitEntryStrategy };
+      
+      // Update UI
+      document.getElementById('position1').value = splitEntryStrategy.positions[0];
+      document.getElementById('position2').value = splitEntryStrategy.positions[1];
+      document.getElementById('position3').value = splitEntryStrategy.positions[2];
+    }
+  } catch (error) {
+    console.error('Failed to load split entry settings:', error);
+  }
+}
+
+function shouldExecuteTp(entryPrice, currentPrice, position, timeElapsed) {
+  const profitPercent = position === 'long' 
+    ? ((currentPrice - entryPrice) / entryPrice) * 100
+    : ((entryPrice - currentPrice) / entryPrice) * 100;
+  
+  switch(customTpStrategy.type) {
+    case 'simple':
+      return profitPercent >= customTpStrategy.simpleTp;
+      
+    case 'trailing':
+      return checkTrailingTp(profitPercent);
+      
+    case 'split':
+      const splitTpResult = checkSplitTp(profitPercent);
+      return splitTpResult !== false; // Split TP 조건 충족 시 true 반환
+      
+    default:
+      return false;
+  }
+}
+
+function checkSplitTp(currentProfit) {
+  // Calculate active TP levels (non-zero values)
+  const activeTpLevels = customTpStrategy.splitTp.filter(tp => tp > 0);
+  const activeCount = activeTpLevels.length;
+  
+  if (activeCount === 0) return false;
+  
+  // Calculate dynamic position sizes based on active TP levels
+  let positionSizes;
+  if (activeCount === 1) {
+    positionSizes = [100]; // 100% on single TP
+  } else if (activeCount === 2) {
+    positionSizes = [50, 50]; // 50% each for two TPs
+  } else {
+    positionSizes = [33.33, 33.33, 33.34]; // Equal split for three TPs
+  }
+  
+  // Check each TP level
+  for (let i = 0; i < customTpStrategy.splitTp.length; i++) {
+    const tpLevel = customTpStrategy.splitTp[i];
+    if (tpLevel > 0 && !splitTpStrategy.executedTps[i] && currentProfit >= tpLevel) {
+      // Execute this TP level
+      splitTpStrategy.executedTps[i] = true;
+      
+      // Find the index in active TPs to get correct position size
+      const activeTpIndex = customTpStrategy.splitTp.slice(0, i + 1).filter(tp => tp > 0).length - 1;
+      const positionPercentage = positionSizes[activeTpIndex] || (100 / activeCount);
+      
+      console.log(`Split TP ${i + 1} triggered at ${currentProfit}% (target: ${tpLevel}%) - Closing ${positionPercentage}% of position`);
+      
+      // 마지막 TP 실행 시 분할 진입 상태 초기화 (모든 포지션이 정리된 경우)
+      if (positionPercentage >= 100 || activeTpIndex === activeCount - 1) {
+        resetSplitEntryState();
+        currentPosition.isActive = false;
+        currentPosition.entryPrice = null;
+      }
+      
+      return { level: i + 1, percentage: positionPercentage };
+    }
+  }
+  return false;
+}
+
+function checkTrailingTp(currentProfit) {
+  // Update max profit
+  if (currentProfit > customTpStrategy.maxProfit) {
+    customTpStrategy.maxProfit = currentProfit;
+  }
+  
+  // Simple trailing logic: if profit drops by trailing distance from max profit
+  if (customTpStrategy.maxProfit > 0) {
+    const trailingThreshold = customTpStrategy.maxProfit - customTpStrategy.trailingDistance;
+    return currentProfit <= trailingThreshold;
+  }
+  
+  return false;
+}
+
+// 자동 새로고침 타이머 설정
+function setupAutoRefresh(minutes) {
+  // 기존 타이머 제거
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+  
+  // 기존 카운트다운 타이머 제거
+  if (autoRefreshCountdownTimer) {
+    clearInterval(autoRefreshCountdownTimer);
+    autoRefreshCountdownTimer = null;
+  }
+  
+  // 카운트다운 숨기기
+  if (autoRefreshCountdown) {
+    autoRefreshCountdown.style.display = 'none';
+  }
+  
+  // Auto Trading이 OFF면 새로고침 안 함
+  if (!isTrading) {
+    console.log('자동 새로고침 비활성화: Auto Trading이 OFF입니다');
+    return;
+  }
+  
+  // 0이면 새로고침 안 함
+  if (minutes <= 0 || minutes > 100) {
+    console.log('자동 새로고침 비활성화: 간격이 0이거나 100을 초과합니다');
+    return;
+  }
+  
+  // 분을 밀리초로 변환
+  const intervalMs = minutes * 60 * 1000;
+  console.log(`자동 새로고침 설정: ${minutes}분 (${intervalMs}ms)`);
+  
+  // 남은 시간 초기화 (초 단위)
+  autoRefreshRemainingTime = minutes * 60;
+  
+  // 카운트다운 표시 시작
+  if (autoRefreshCountdown) {
+    autoRefreshCountdown.style.display = 'inline';
+    updateAutoRefreshCountdown();
+    
+    // 카운트다운 타이머 (1초마다 업데이트)
+    autoRefreshCountdownTimer = setInterval(() => {
+      if (!isTrading) {
+        // Auto Trading이 OFF면 카운트다운 중지
+        clearInterval(autoRefreshCountdownTimer);
+        autoRefreshCountdownTimer = null;
+        if (autoRefreshCountdown) {
+          autoRefreshCountdown.style.display = 'none';
+        }
+        return;
+      }
+      
+      autoRefreshRemainingTime--;
+      if (autoRefreshRemainingTime <= 0) {
+        // 카운트다운 완료 - 새로고침 실행 후 다시 시작
+        autoRefreshRemainingTime = minutes * 60;
+      }
+      updateAutoRefreshCountdown();
+    }, 1000);
+  }
+  
+  // 타이머 설정
+  autoRefreshTimer = setInterval(() => {
+    // Auto Trading이 여전히 ON인지 확인
+    if (!isTrading) {
+      console.log('자동 새로고침 중지: Auto Trading이 OFF가 되었습니다');
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+      
+      // 카운트다운도 중지
+      if (autoRefreshCountdownTimer) {
+        clearInterval(autoRefreshCountdownTimer);
+        autoRefreshCountdownTimer = null;
+      }
+      if (autoRefreshCountdown) {
+        autoRefreshCountdown.style.display = 'none';
+      }
+      return;
+    }
+    
+    console.log(`🔄 자동 새로고침 실행 (${minutes}분 간격)`);
+    // 현재 활성 탭 새로고침
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.reload(tabs[0].id);
+      }
+    });
+    
+    // 카운트다운 리셋
+    autoRefreshRemainingTime = minutes * 60;
+    if (autoRefreshCountdown) {
+      updateAutoRefreshCountdown();
+    }
+  }, intervalMs);
+}
+
+// 자동 새로고침 카운트다운 업데이트
+function updateAutoRefreshCountdown() {
+  if (!autoRefreshCountdown) return;
+  
+  const minutes = Math.floor(autoRefreshRemainingTime / 60);
+  const seconds = autoRefreshRemainingTime % 60;
+  autoRefreshCountdown.textContent = ` (${minutes}:${seconds.toString().padStart(2, '0')})`;
+}
+
+// Trading 모드 업데이트 (Manual/Record)
+function updateTradingMode(isRecordMode) {
+  if (isRecordMode) {
+    // Record 모드: Manual 버튼 숨기기, Record 버튼 표시
+    manualLongBtn.style.display = 'none';
+    manualShortBtn.style.display = 'none';
+    manualCloseBtn.style.display = 'none';
+    longRecordBtn.style.display = 'block';
+    shortRecordBtn.style.display = 'block';
+    closeRecordBtn.style.display = 'block';
+  } else {
+    // Manual 모드: Record 버튼 숨기기, Manual 버튼 표시
+    manualLongBtn.style.display = 'block';
+    manualShortBtn.style.display = 'block';
+    manualCloseBtn.style.display = 'block';
+    longRecordBtn.style.display = 'none';
+    shortRecordBtn.style.display = 'none';
+    closeRecordBtn.style.display = 'none';
+  }
+}
+
+async function saveCustomTpSettings() {
+  try {
+    await chrome.storage.local.set({ customTpStrategy });
+    console.log('Custom TP settings saved');
+  } catch (error) {
+    console.error('Failed to save custom TP settings:', error);
+  }
+}
+
+async function loadCustomTpSettings() {
+  try {
+    const result = await chrome.storage.local.get(['customTpStrategy']);
+    if (result.customTpStrategy) {
+      customTpStrategy = { ...customTpStrategy, ...result.customTpStrategy };
+      
+      // Update UI
+      document.getElementById('tpStrategySelect').value = customTpStrategy.type;
+      document.getElementById('simpleTpValue').value = customTpStrategy.simpleTp;
+      document.getElementById('trailingDistance').value = customTpStrategy.trailingDistance;
+      
+      // Update Split TP inputs
+      if (customTpStrategy.splitTp) {
+        document.getElementById('splitTp1').value = customTpStrategy.splitTp[0] || 3;
+        document.getElementById('splitTp2').value = customTpStrategy.splitTp[1] || 6;
+        document.getElementById('splitTp3').value = customTpStrategy.splitTp[2] || 10;
+      }
+      
+      // Trigger strategy change to show correct settings
+      document.getElementById('tpStrategySelect').dispatchEvent(new Event('change'));
+    }
+  } catch (error) {
+    console.error('Failed to load custom TP settings:', error);
+  }
+}
+
+// 기존 DOMContentLoaded 이벤트에 언어 시스템 및 텔레그램 설정 로드 추가
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Popup loaded with Telegram support');
+  console.log('Popup loaded with Multi-language, Telegram and Custom TP support');
+  
+  // Initialize language system first
+  initializeLanguageSystem();
+  
+  // Initialize custom TP system
+  initializeCustomTpSystem();
+  
+  // Record Toggle 이벤트 리스너
+  if (recordToggle) {
+    recordToggle.addEventListener('change', function() {
+      updateTradingMode(recordToggle.checked);
+    });
+    
+    // 초기 상태 설정 (기본값: OFF = Manual 모드)
+    updateTradingMode(false);
+  }
+  
+  // 초기 Manual 버튼 상태 설정 (매크로가 없으면 비활성화)
+  manualLongBtn.disabled = true;
+  manualShortBtn.disabled = true;
+  manualSlBtn.disabled = true;
+  manualCloseBtn.disabled = true;
+  console.log('🔒 Manual 버튼들 초기 비활성화 설정 완료');
+  
   loadSettings();
   loadTelegramSettings(); // 텔레그램 설정 로드 추가
   updateUI();
   updateDataDisplay();
   
+  // 매크로 버튼 상태 초기 업데이트
+  updateMacroButtonStates();
+  
   // 주기적으로 데이터 업데이트 (1초마다)
   setInterval(updateDataDisplay, 1000);
+  
+  // Phase 8 Test (Development)
+  console.log('💡 Phase 8 Test: Run testPhase8() in console for testing');
 });
