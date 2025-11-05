@@ -379,7 +379,7 @@ manualCloseBtn.addEventListener('click', async () => {
     // TP 상태 초기화
     splitTpStrategy.executedTps = [false, false, false];
     if (customTpStrategy.type === 'trailing') {
-      customTpStrategy.maxProfit = 0;
+      customTpStrategy.maxPrice = null;
       customTpStrategy.trailingStopPrice = null;
     }
     
@@ -721,7 +721,7 @@ async function executeSplitEntryAll(tradeType) {
           
           // Trailing TP 상태 초기화
           if (customTpStrategy.type === 'trailing') {
-            customTpStrategy.maxProfit = 0;
+            customTpStrategy.maxPrice = null;
             customTpStrategy.trailingStopPrice = null;
           }
           
@@ -936,7 +936,7 @@ async function executeTakeProfit() {
       
       // Trailing TP 상태 초기화
       if (customTpStrategy.type === 'trailing') {
-        customTpStrategy.maxProfit = 0;
+        customTpStrategy.maxPrice = null;
         customTpStrategy.trailingStopPrice = null;
       }
       
@@ -1087,7 +1087,7 @@ async function executeSplitEntry(tradeType) {
           
           // Trailing TP 상태 초기화
           if (customTpStrategy.type === 'trailing') {
-            customTpStrategy.maxProfit = 0;
+            customTpStrategy.maxPrice = null;
             customTpStrategy.trailingStopPrice = null;
           }
           
@@ -1369,6 +1369,8 @@ async function extractPrice() {
     } else {
       currentAmount.textContent = '-';
     }
+    // TP 가격 표시 업데이트 (현재가 변경 시)
+    updateTpPriceDisplay();
   });
 }
 
@@ -1827,7 +1829,7 @@ tradingToggle.addEventListener('change', async (e) => {
     // TP 상태 초기화
     splitTpStrategy.executedTps = [false, false, false];
     if (customTpStrategy.type === 'trailing') {
-      customTpStrategy.maxProfit = 0;
+      customTpStrategy.maxPrice = null;
       customTpStrategy.trailingStopPrice = null;
     }
     
@@ -1922,22 +1924,182 @@ function updateStopLossPriceDisplay() {
   
   // 포지션이 활성화되어 있고 진입가가 있는 경우에만 표시
   if (currentPosition.isActive && currentPosition.entryPrice && currentPosition.type) {
-    console.log(`🔍 SL 표시 체크: isActive=${currentPosition.isActive}, entryPrice=${currentPosition.entryPrice}, type=${currentPosition.type}`);
-    
     const slPrice = calculateSlPrice(currentPosition.entryPrice, currentPosition.type);
-    console.log(`🔍 계산된 SL 가격: ${slPrice}`);
     
     if (slPrice && !isNaN(slPrice)) {
       stopLossPrice.textContent = `(${slPrice})`;
       stopLossPrice.style.display = 'block';
-      console.log(`✅ SL 가격 표시 업데이트: ${slPrice} (진입가: ${currentPosition.entryPrice}, 포지션: ${currentPosition.type})`);
     } else {
-      console.warn('⚠️ SL 가격 계산 실패 또는 유효하지 않음:', slPrice);
       stopLossPrice.style.display = 'none';
     }
   } else {
-    console.log(`ℹ️ SL 표시 조건 불충족: isActive=${currentPosition.isActive}, entryPrice=${currentPosition.entryPrice}, type=${currentPosition.type}`);
     stopLossPrice.style.display = 'none';
+  }
+}
+
+// TP 가격 표시 업데이트 함수
+function updateTpPriceDisplay() {
+  // 현재가 추출 (진입 전에도 표시하기 위해)
+  const currentPriceText = currentPrice ? currentPrice.textContent.trim() : '-';
+  let currentPriceValue = null;
+  if (currentPriceText !== '-' && currentPriceText !== '') {
+    currentPriceValue = parseFloat(currentPriceText.replace(/[^0-9.-]/g, ''));
+    if (isNaN(currentPriceValue) || currentPriceValue === 0) {
+      currentPriceValue = null;
+    }
+  }
+  
+  // 진입가가 있으면 진입가 사용, 없으면 현재가 사용 (진입 전 미리보기)
+  const basePrice = (currentPosition.isActive && currentPosition.entryPrice) 
+    ? parseFloat(currentPosition.entryPrice) 
+    : currentPriceValue;
+  
+  // 포지션 타입 (진입 전에는 없으므로 null)
+  const position = currentPosition.type || null;
+  
+  // 가격이 없으면 Simple TP만 숨김 (Trailing과 Split은 항상 표시)
+  if (!basePrice || isNaN(basePrice)) {
+    const simpleTpPriceDisplay = document.getElementById('simpleTpPriceDisplay');
+    if (simpleTpPriceDisplay) simpleTpPriceDisplay.style.display = 'none';
+  }
+  
+  // 진입 전에는 Long 기준으로 가격 계산 (진입 타입이 없으므로)
+  const calculatedPosition = position || 'long';
+  
+  // 현재 선택된 TP 전략에 따라 해당 가격만 표시
+  switch(customTpStrategy.type) {
+    case 'simple':
+      // Simple TP 가격 계산
+      const simpleTpPercent = customTpStrategy.simpleTp || 0;
+      let simpleTpPrice;
+      if (calculatedPosition === 'long') {
+        simpleTpPrice = basePrice * (1 + simpleTpPercent / 100);
+      } else {
+        simpleTpPrice = basePrice * (1 - simpleTpPercent / 100);
+      }
+      
+      // 소수점 자릿수 조정
+      if (basePrice < 1) {
+        simpleTpPrice = simpleTpPrice.toFixed(6);
+      } else if (basePrice < 100) {
+        simpleTpPrice = simpleTpPrice.toFixed(4);
+      } else {
+        simpleTpPrice = simpleTpPrice.toFixed(2);
+      }
+      
+      const simpleTpPriceValue = document.getElementById('simpleTpPriceValue');
+      const simpleTpPriceDisplay = document.getElementById('simpleTpPriceDisplay');
+      if (simpleTpPriceValue && simpleTpPriceDisplay) {
+        simpleTpPriceValue.textContent = simpleTpPrice;
+        simpleTpPriceDisplay.style.display = 'flex';
+      }
+      
+      // 다른 TP 가격 숨김
+      const trailingTpPriceDisplay = document.getElementById('trailingTpPriceDisplay');
+      const splitTpPriceDisplay = document.getElementById('splitTpPriceDisplay');
+      if (trailingTpPriceDisplay) trailingTpPriceDisplay.style.display = 'none';
+      if (splitTpPriceDisplay) splitTpPriceDisplay.style.display = 'none';
+      break;
+      
+    case 'trailing':
+      const trailingTpPriceValue = document.getElementById('trailingTpPriceValue');
+      const trailingTpPriceDisplayEl = document.getElementById('trailingTpPriceDisplay');
+      if (trailingTpPriceValue && trailingTpPriceDisplayEl) {
+        if (customTpStrategy.maxPrice !== null && currentPosition.isActive) {
+          const trailingPrice = calculatedPosition === 'long' 
+            ? customTpStrategy.maxPrice - customTpStrategy.trailingDistance
+            : customTpStrategy.maxPrice + customTpStrategy.trailingDistance;
+          
+          let formattedPrice;
+          if (basePrice < 1) {
+            formattedPrice = trailingPrice.toFixed(6);
+          } else if (basePrice < 100) {
+            formattedPrice = trailingPrice.toFixed(4);
+          } else {
+            formattedPrice = trailingPrice.toFixed(2);
+          }
+          
+          trailingTpPriceValue.textContent = formattedPrice;
+          trailingTpPriceDisplayEl.style.display = 'flex';
+        } else {
+          trailingTpPriceValue.textContent = '-';
+          trailingTpPriceDisplayEl.style.display = 'flex';
+        }
+      }
+      
+      // 다른 TP 가격 숨김
+      const simpleTpPriceDisplayEl2 = document.getElementById('simpleTpPriceDisplay');
+      const splitTpPriceDisplayEl2 = document.getElementById('splitTpPriceDisplay');
+      if (simpleTpPriceDisplayEl2) simpleTpPriceDisplayEl2.style.display = 'none';
+      if (splitTpPriceDisplayEl2) splitTpPriceDisplayEl2.style.display = 'none';
+      break;
+      
+    case 'split':
+      const splitTpPriceValue = document.getElementById('splitTpPriceValue');
+      const splitTpPriceDisplayEl = document.getElementById('splitTpPriceDisplay');
+      
+      if (splitTpPriceValue && splitTpPriceDisplayEl) {
+        let nextTpIndex = -1;
+        if (currentPosition.isActive) {
+          for (let i = 0; i < splitTpStrategy.executedTps.length; i++) {
+            if (!splitTpStrategy.executedTps[i] && customTpStrategy.splitTp[i] > 0) {
+              nextTpIndex = i;
+              break;
+            }
+          }
+        } else {
+          for (let i = 0; i < customTpStrategy.splitTp.length; i++) {
+            if (customTpStrategy.splitTp[i] > 0) {
+              nextTpIndex = i;
+              break;
+            }
+          }
+        }
+        
+        if (nextTpIndex >= 0) {
+          if (basePrice && !isNaN(basePrice)) {
+            const tpPercent = customTpStrategy.splitTp[nextTpIndex];
+            let splitTpPrice;
+            if (calculatedPosition === 'long') {
+              splitTpPrice = basePrice * (1 + tpPercent / 100);
+            } else {
+              splitTpPrice = basePrice * (1 - tpPercent / 100);
+            }
+            
+            // 소수점 자릿수 조정
+            if (basePrice < 1) {
+              splitTpPrice = splitTpPrice.toFixed(6);
+            } else if (basePrice < 100) {
+              splitTpPrice = splitTpPrice.toFixed(4);
+            } else {
+              splitTpPrice = splitTpPrice.toFixed(2);
+            }
+            
+            splitTpPriceValue.textContent = `${splitTpPrice} (Step ${nextTpIndex + 1})`;
+          } else {
+            splitTpPriceValue.textContent = `- (Step ${nextTpIndex + 1})`;
+          }
+          splitTpPriceDisplayEl.style.display = 'flex';
+        } else {
+          splitTpPriceValue.textContent = '- (All Steps Complete)';
+          splitTpPriceDisplayEl.style.display = 'flex';
+        }
+      }
+      
+      // 다른 TP 가격 숨김
+      const simpleTpPriceDisplayEl3 = document.getElementById('simpleTpPriceDisplay');
+      const trailingTpPriceDisplayEl3 = document.getElementById('trailingTpPriceDisplay');
+      if (simpleTpPriceDisplayEl3) simpleTpPriceDisplayEl3.style.display = 'none';
+      if (trailingTpPriceDisplayEl3) trailingTpPriceDisplayEl3.style.display = 'none';
+      break;
+      
+    default:
+      // 모든 TP 가격 숨김
+      const allTpDisplays = ['simpleTpPriceDisplay', 'trailingTpPriceDisplay', 'splitTpPriceDisplay'];
+      allTpDisplays.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
   }
 }
 
@@ -2502,6 +2664,9 @@ function updateDataDisplay() {
   
   // 스탑로스 가격 표시 업데이트
   updateStopLossPriceDisplay();
+  
+  // TP 가격 표시 업데이트
+  updateTpPriceDisplay();
 }
 
 // Phase 8 테스트 함수
@@ -2586,11 +2751,11 @@ function setupLanguageSelector() {
 // Custom TP Strategy System
 let customTpStrategy = {
   type: 'simple', // 'simple', 'trailing', 'split'
-  simpleTp: 5,
-  trailingDistance: 2,
+  simpleTp: 5, // Simple TP percentage
+  trailingDistance: 0, // Trailing Distance in price (not percentage)
   splitTp: [3, 6, 10], // Split TP percentages
   entryPrice: null,
-  maxProfit: 0,
+  maxPrice: null, // Maximum price reached (for trailing stop)
   trailingStopPrice: null
 };
 
@@ -2629,27 +2794,39 @@ function initializeCustomTpSystem() {
     switch(selectedStrategy) {
       case 'simple':
         simpleTpSettings.style.display = 'flex';
+        trailingTpSettings.style.display = 'none';
+        splitTpSettings.style.display = 'none';
         break;
       case 'trailing':
+        simpleTpSettings.style.display = 'none';
         trailingTpSettings.style.display = 'flex';
+        splitTpSettings.style.display = 'none';
         break;
       case 'split':
+        simpleTpSettings.style.display = 'none';
+        trailingTpSettings.style.display = 'none';
         splitTpSettings.style.display = 'flex';
         break;
     }
     
     saveCustomTpSettings();
+    // TP 가격 표시 업데이트
+    updateTpPriceDisplay();
   });
   
   // Input change events for saving settings
   document.getElementById('simpleTpValue').addEventListener('change', (e) => {
     customTpStrategy.simpleTp = parseFloat(e.target.value);
     saveCustomTpSettings();
+    // TP 가격 표시 업데이트
+    updateTpPriceDisplay();
   });
   
   document.getElementById('trailingDistance').addEventListener('change', (e) => {
-    customTpStrategy.trailingDistance = parseFloat(e.target.value);
+    customTpStrategy.trailingDistance = parseFloat(e.target.value) || 0;
     saveCustomTpSettings();
+    // TP 가격 표시 업데이트
+    updateTpPriceDisplay();
   });
   
   // Split TP input events
@@ -2657,6 +2834,8 @@ function initializeCustomTpSystem() {
     document.getElementById(id).addEventListener('change', (e) => {
       customTpStrategy.splitTp[index] = parseFloat(e.target.value) || 0;
       saveCustomTpSettings();
+      // TP 가격 표시 업데이트
+      updateTpPriceDisplay();
     });
   });
   
@@ -2712,19 +2891,24 @@ async function loadSplitEntrySettings() {
 }
 
 function shouldExecuteTp(entryPrice, currentPrice, position, timeElapsed) {
-  const profitPercent = position === 'long' 
-    ? ((currentPrice - entryPrice) / entryPrice) * 100
-    : ((entryPrice - currentPrice) / entryPrice) * 100;
-  
   switch(customTpStrategy.type) {
     case 'simple':
+      // Simple TP: 수익률 기준
+      const profitPercent = position === 'long' 
+        ? ((currentPrice - entryPrice) / entryPrice) * 100
+        : ((entryPrice - currentPrice) / entryPrice) * 100;
       return profitPercent >= customTpStrategy.simpleTp;
       
     case 'trailing':
-      return checkTrailingTp(profitPercent);
+      // Trailing TP: 가격 기준
+      return checkTrailingTp(currentPrice, position);
       
     case 'split':
-      const splitTpResult = checkSplitTp(profitPercent);
+      // Split TP: 수익률 기준 (각 단계별 %)
+      const splitProfitPercent = position === 'long' 
+        ? ((currentPrice - entryPrice) / entryPrice) * 100
+        : ((entryPrice - currentPrice) / entryPrice) * 100;
+      const splitTpResult = checkSplitTp(splitProfitPercent);
       return splitTpResult !== false; // Split TP 조건 충족 시 true 반환
       
     default:
@@ -2780,19 +2964,30 @@ function checkSplitTp(currentProfit) {
   return false;
 }
 
-function checkTrailingTp(currentProfit) {
-  // Update max profit
-  if (currentProfit > customTpStrategy.maxProfit) {
-    customTpStrategy.maxProfit = currentProfit;
+function checkTrailingTp(currentPrice, position) {
+  // Update max price (최고가 추적)
+  if (customTpStrategy.maxPrice === null || currentPrice === null) {
+    customTpStrategy.maxPrice = currentPrice;
+    return false;
   }
   
-  // Simple trailing logic: if profit drops by trailing distance from max profit
-  if (customTpStrategy.maxProfit > 0) {
-    const trailingThreshold = customTpStrategy.maxProfit - customTpStrategy.trailingDistance;
-    return currentProfit <= trailingThreshold;
+  if (position === 'long') {
+    // Long: 현재가가 최고가보다 높으면 업데이트
+    if (currentPrice > customTpStrategy.maxPrice) {
+      customTpStrategy.maxPrice = currentPrice;
+    }
+    // Trailing Distance만큼 하락하면 TP 실행
+    const trailingThreshold = customTpStrategy.maxPrice - customTpStrategy.trailingDistance;
+    return currentPrice <= trailingThreshold;
+  } else {
+    // Short: 현재가가 최저가보다 낮으면 업데이트 (Short는 반대)
+    if (currentPrice < customTpStrategy.maxPrice || customTpStrategy.maxPrice === null) {
+      customTpStrategy.maxPrice = currentPrice;
+    }
+    // Trailing Distance만큼 상승하면 TP 실행
+    const trailingThreshold = customTpStrategy.maxPrice + customTpStrategy.trailingDistance;
+    return currentPrice >= trailingThreshold;
   }
-  
-  return false;
 }
 
 // 자동 새로고침 타이머 설정
