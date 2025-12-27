@@ -19,7 +19,7 @@ class LanguageManager {
         'extract_price': 'Extract Price',
         'current_assets': 'Current Assets',
         'current_price': 'Current Price',
-        'calculated_amount': 'Calculated Amount',
+        'calculated_amount': 'Max Amount',
         'macro_recording': 'Macro Recording',
         'record_long': 'Record Long',
         'record_short': 'Record Short',
@@ -40,7 +40,7 @@ class LanguageManager {
         'test': 'Test',
         'url': 'URL',
         'language': 'Language',
-        
+
         // Status Messages
         'trading_started': 'Trading Started',
         'trading_stopped': 'Trading Stopped',
@@ -50,7 +50,7 @@ class LanguageManager {
         'macro_executed': 'Macro Executed',
         'extraction_success': 'Extraction Successful',
         'extraction_failed': 'Extraction Failed',
-        
+
         // Telegram Messages
         'trade_success': '✅ {symbol} {action} trade executed successfully!',
         'trade_failed': '❌ {symbol} {action} trade execution failed',
@@ -64,7 +64,7 @@ class LanguageManager {
         'screenshot_caption': '📸 Trading Screen Capture',
         'macro_executing': '⚠️ Macro is currently executing. Please try again later.',
         'cooldown_message': '⏳ Please wait {seconds} more seconds before next trade.',
-        
+
         // Debug Messages
         'debug_info': '🔧 Debug Information:',
         'symbol_setting': '• Symbol Setting: {symbol}',
@@ -75,7 +75,7 @@ class LanguageManager {
         'last_trade': '• Last Trade: {time}',
         'screenshot_feature': '• Screenshot Feature: ✅ Available',
         'test_commands': '💡 Test Commands: SCREENSHOT',
-        
+
         // Error Messages
         'no_exchange_selected': 'Please select an exchange first.',
         'no_macro_recorded': '{type} macro not recorded. Please record macro first.',
@@ -90,7 +90,7 @@ class LanguageManager {
         'telegram_not_configured': 'Telegram settings incomplete',
         'screenshot_capture_failed': 'Screenshot capture failed: {error}',
         'screenshot_send_failed': 'Screenshot send failed: {error}',
-        
+
         // Success Messages
         'telegram_connected': 'Connected: @{username}',
         'telegram_connection_test_success': 'Telegram connection test successful',
@@ -102,12 +102,17 @@ class LanguageManager {
         'parsing_action': '• Action: {action}',
         'parsing_validation': '• Validation: {result}',
         'parsing_error': '• Error: {error}',
-        
+
         // Additional UI Elements
         'settings': 'Settings',
+        'dashboard': 'Dashboard',
+        'position_status': 'Position',
         'trading_status': 'Status',
         'standby': 'Standby',
         'leverage': 'Leverage',
+        'market_type': 'Market Type',
+        'spot': 'Spot',
+        'futures': 'Futures',
         'position_percent': 'Position (%)',
         'stoploss_percent': 'Stoploss (%)',
         'sl_record': 'SL Record',
@@ -130,23 +135,53 @@ class LanguageManager {
         'clear_data_confirm': 'Are you sure you want to clear all data? This action cannot be undone.',
         'clear_data_success': 'All data has been cleared successfully.',
         'clear_data_failed': 'Failed to clear data.',
-        'trading_settings': 'Trading Settings',
-        'trading_options': 'Options',
+        'trading_settings': 'Action Console',
+        'trading_options': 'Trading Settings',
         'trading_controls': 'Controls',
+        'trading_controls_title': 'Trading Controls',
         'trading': 'Trading',
-        'record': 'Record',
+        'record': 'Recording Mode',
         'auto_trading': 'Auto Trading',
         'auto_refresh': 'Auto Refresh',
         'auto_refresh_minutes': 'Minutes',
+        'extract': 'Extract',
+        'selecting': 'Selecting...',
         'trading_mode': 'Trading Mode',
         'one_way_mode': 'One Way Mode',
         'hedge_mode': 'Hedge Mode',
-        
+        'close_position_confirm': 'End {type} position status? (Reset state)',
+        'open': 'Open',
+        'close': 'Close',
+        'limit': 'Limit',
+        'market': 'Market',
+        'long': 'Long',
+        'short': 'Short',
+        'close_long': 'Close Long',
+        'close_short': 'Close Short',
+        'style': 'Style',
+        'standard': 'Standard',
+        'martingale': 'Martingale',
+        'fixed_risk': 'Fixed Risk %',
+        'smart_dca': 'Smart DCA',
+        'pyramiding': 'Pyramiding',
+        'twap': 'TWAP',
+        'box_control': 'Box Control',
+        'upper_limit': 'Upper Limit',
+        'lower_limit': 'Lower Limit',
+        'risk_per_trade': 'Risk per Trade (%)',
+        'max_safety_orders': 'Max Safety Orders',
+        'price_deviation': 'Price Deviation (%)',
+        'step_volume_scale': 'Step Volume Scale',
+        'add_step_percent': 'Add Step (%)',
+        'add_amount_percent': 'Add Amount (%)',
+        'total_duration_min': 'Total Duration (min)',
+        'order_slices': 'Order Slices',
+
         // Languages
         'english': 'English',
         'korean': '한국어'
       },
-      
+
       ko: {
         // UI Labels
         'trading_bot': '트레이딩 봇',
@@ -159,7 +194,7 @@ class LanguageManager {
         'extract_price': '가격 추출',
         'current_assets': '현재 자산',
         'current_price': '현재 가격',
-        'calculated_amount': '계산된 수량',
+        'calculated_amount': '최대 수량',
         'macro_recording': '매크로 녹화',
         'record_long': 'Long 녹화',
         'record_short': 'Short 녹화',
@@ -180,7 +215,7 @@ class LanguageManager {
         'test': '테스트',
         'url': 'URL',
         'language': '언어',
-        
+
         // Status Messages
         'trading_started': '거래 시작됨',
         'trading_stopped': '거래 중단됨',
@@ -190,7 +225,7 @@ class LanguageManager {
         'macro_executed': '매크로 실행됨',
         'extraction_success': '추출 성공',
         'extraction_failed': '추출 실패',
-        
+
         // Telegram Messages
         'trade_success': '✅ {symbol} {action} 매크로 실행 성공!',
         'trade_failed': '❌ {symbol} {action} 매크로 실행 실패',
@@ -204,7 +239,7 @@ class LanguageManager {
         'screenshot_caption': '📸 거래 화면 캡처',
         'macro_executing': '⚠️ 매크로 실행 중입니다. 잠시 후 다시 시도해주세요.',
         'cooldown_message': '⏳ 다음 거래까지 {seconds}초 더 기다려주세요.',
-        
+
         // Debug Messages
         'debug_info': '🔧 디버그 정보:',
         'symbol_setting': '• 설정된 심볼: {symbol}',
@@ -215,7 +250,7 @@ class LanguageManager {
         'last_trade': '• 마지막 거래: {time}',
         'screenshot_feature': '• 스크린샷 기능: ✅ 사용 가능',
         'test_commands': '💡 테스트 명령어: SCREENSHOT',
-        
+
         // Error Messages
         'no_exchange_selected': '먼저 거래소를 선택해주세요.',
         'no_macro_recorded': '{type} 매크로가 녹화되지 않았습니다. 먼저 매크로를 녹화해주세요.',
@@ -230,7 +265,7 @@ class LanguageManager {
         'telegram_not_configured': '텔레그램 설정이 불완전함',
         'screenshot_capture_failed': '스크린샷 캡처 실패: {error}',
         'screenshot_send_failed': '스크린샷 전송 실패: {error}',
-        
+
         // Success Messages
         'telegram_connected': '연결됨: @{username}',
         'telegram_connection_test_success': '텔레그램 연결 테스트 성공',
@@ -242,12 +277,17 @@ class LanguageManager {
         'parsing_action': '• 액션: {action}',
         'parsing_validation': '• 검증: {result}',
         'parsing_error': '• 오류: {error}',
-        
+
         // Additional UI Elements
         'settings': '설정',
+        'dashboard': '대시보드',
+        'position_status': '포지션 상태',
         'trading_status': '상태',
         'standby': '대기',
         'leverage': '레버리지',
+        'market_type': '거래 유형',
+        'spot': '현물',
+        'futures': '선물',
         'position_percent': '포지션 (%)',
         'stoploss_percent': '손절 (%)',
         'sl_record': 'SL 녹화',
@@ -259,7 +299,7 @@ class LanguageManager {
         'split_tp': '분할 TP',
         'take_profit_percent': '익절 (%)',
         'trailing_distance': '트레일링 거리 (%)',
-        'split_tp_percent': '분할 TP (%)',
+        'split_tp_percent': '분할 TP 비중 (%)',
         'load_data': '데이터 불러오기',
         'save_data': '데이터 저장하기',
         'clear_data': '데이터 삭제',
@@ -270,27 +310,57 @@ class LanguageManager {
         'clear_data_confirm': '모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
         'clear_data_success': '모든 데이터가 성공적으로 삭제되었습니다.',
         'clear_data_failed': '데이터 삭제에 실패했습니다.',
-        'trading_settings': '거래 설정',
-        'trading_options': '옵션',
+        'trading_settings': '액션 콘솔',
+        'trading_options': '거래 설정',
         'trading_controls': '컨트롤',
+        'trading_controls_title': '트레이딩 컨트롤',
         'trading': '거래',
-        'record': '녹화',
+        'record': '녹화모드',
         'auto_trading': '자동 거래',
         'auto_refresh': '자동 새로고침',
         'auto_refresh_minutes': '분',
+        'extract': '추출',
+        'selecting': '선택 중...',
         'trading_mode': '거래 모드',
         'one_way_mode': '원웨이 모드',
         'hedge_mode': '헤지 모드',
-        
+        'close_position_confirm': '{type} 포지션 상태를 종료하시겠습니까? (상태 초기화)',
+        'open': 'Open',
+        'close': 'Close',
+        'limit': 'Limit',
+        'market': 'Market',
+        'long': 'Long',
+        'short': 'Short',
+        'close_long': 'Close Long',
+        'close_short': 'Close Short',
+        'style': '스타일',
+        'standard': '표준',
+        'martingale': '마틴게일',
+        'fixed_risk': '리스크 고정형',
+        'smart_dca': '스마트 DCA',
+        'pyramiding': '피라미딩',
+        'twap': 'TWAP',
+        'box_control': '박스 컨트롤',
+        'upper_limit': '상한 라인 (Price)',
+        'lower_limit': '하한 라인 (Price)',
+        'risk_per_trade': '진입 리스크 (%)',
+        'max_safety_orders': '최대 안전 주문',
+        'price_deviation': '가격 간격 (%)',
+        'step_volume_scale': '수량 배수',
+        'add_step_percent': '불타기 간격 (%)',
+        'add_amount_percent': '추가 수량 (%)',
+        'total_duration_min': '총 지속 시간 (분)',
+        'order_slices': '분할 횟수',
+
         // Languages
         'english': 'English',
         'korean': '한국어'
       }
     };
-    
+
     this.loadLanguageSettings();
   }
-  
+
   /**
    * Get translated text
    * @param {string} key Translation key
@@ -298,18 +368,18 @@ class LanguageManager {
    * @returns {string} Translated text
    */
   t(key, params = {}) {
-    let text = this.translations[this.currentLanguage][key] || 
-               this.translations['en'][key] || 
-               key;
-    
+    let text = this.translations[this.currentLanguage][key] ||
+      this.translations['en'][key] ||
+      key;
+
     // String interpolation
     Object.keys(params).forEach(param => {
       text = text.replace(new RegExp(`{${param}}`, 'g'), params[param]);
     });
-    
+
     return text;
   }
-  
+
   /**
    * Set current language
    * @param {string} language Language code ('en' or 'ko')
@@ -321,7 +391,7 @@ class LanguageManager {
       console.log(`Language changed to: ${language}`);
     }
   }
-  
+
   /**
    * Get current language
    * @returns {string} Current language code
@@ -329,7 +399,7 @@ class LanguageManager {
   getCurrentLanguage() {
     return this.currentLanguage;
   }
-  
+
   /**
    * Get available languages
    * @returns {Array} Array of language objects
@@ -340,7 +410,7 @@ class LanguageManager {
       { code: 'ko', name: this.translations['ko']['korean'] }
     ];
   }
-  
+
   /**
    * Load language settings from storage
    */
@@ -354,7 +424,7 @@ class LanguageManager {
       console.log('Language settings not found, using default (English)');
     }
   }
-  
+
   /**
    * Save language settings to storage
    */

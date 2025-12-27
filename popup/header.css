@@ -1,0 +1,63 @@
+/* =========================================
+   Top Header (New)
+   ========================================= */
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    background-color: #161b22;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #30363d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.exchange-selector-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.exchange-dropdown {
+    flex: 1;
+    padding: 8px;
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #f0f6fc;
+    transition: all 0.2s;
+}
+
+.exchange-dropdown:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+
+
+/* Use btn-icon style but override specific size for header button if needed */
+#goToExchangeBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffd700;
+    /* Gold color for visibility when enabled */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#goToExchangeBtn:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+#goToExchangeBtn .material-icons {
+    font-size: 20px;
+}
+
+/* Hide original language selector in settings if redundant, but user asked for it in header */

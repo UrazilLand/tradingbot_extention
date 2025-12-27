@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Crypto Trading Bot Extension",
   "version": "1.0.0",
-  "description": "볼린저 밴드 기반 암호화폐 자동매매 크롬 익스텐션",
+  "description": "Telegram 신호 기반 자동매매 크롬 익스텐션",
   "icons": {
     "16": "assets/icon128.png",
     "32": "assets/icon128.png",

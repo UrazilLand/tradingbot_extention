@@ -1,0 +1,121 @@
+/* =========================================
+   Status Grid Layout (New)
+   ========================================= */
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    /* 3 Columns */
+    gap: 8px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.grid-item {
+    display: flex;
+    flex-direction: column;
+    /* align-items: flex-end; */
+    /* Header left, value right? or all left? */
+    justify-content: center;
+    background-color: transparent;
+}
+
+.grid-item.full-width {
+    grid-column: span 2;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0d1117;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+}
+
+.grid-header {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.grid-item.full-width .grid-header {
+    margin-bottom: 0;
+    font-size: 13px;
+    /* Slightly larger for Qty label */
+}
+
+.grid-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    background-color: #0d1117;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    padding: 0 8px;
+    width: 100%;
+}
+
+.grid-item.full-width .grid-cell {
+    width: auto;
+    border: none;
+    background: transparent;
+    height: auto;
+    padding: 0;
+}
+
+.value-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f6fc;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.grid-item.full-width .value-text {
+    font-size: 16px;
+    color: #2196f3;
+}
+
+.sl-subtext {
+    font-size: 11px;
+    color: #ff4444;
+    display: block;
+    line-height: 1;
+}
+
+.price-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Center align items */
+}
+
+/* Extract Button */
+/* Extract Button (Link Style) */
+.btn-extract {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    /* Muted color initially */
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 0;
+    margin-left: 6px;
+    text-decoration: underline;
+    /* Make it look like a link */
+    min-width: auto;
+    /* Remove fixed width */
+    height: auto;
+    /* Remove fixed height */
+}
+
+.btn-extract:hover {
+    color: #2196f3;
+    background: transparent;
+    border: none;
+    text-decoration: none;
+    /* remove underline on hover? or keep it. user said "link style" */
+}

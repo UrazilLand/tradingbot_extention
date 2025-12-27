@@ -1,3 +1,6 @@
+@import url('header.css');
+@import url('status_grid.css');
+
 * {
   margin: 0;
   padding: 0;
@@ -5,134 +8,447 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  min-height: 300px;
-  background-color: #f5f5f5;
-  overflow-x: hidden; /* 가로 스크롤바 숨김 */
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 500px;
+  width: 380px;
+  background-color: #0d1117;
+  /* GitHub Dark Main Background */
+  color: #c9d1d9;
+  overflow-x: hidden;
+  padding-bottom: 20px;
 }
 
 .container {
-  padding: 20px;
+  padding: 15px;
   max-width: 100%;
 }
 
-/* Status Display Area */
-.status-section {
-  background-color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* =========================================
+   View Management
+   ========================================= */
+.view-section {
+  display: block;
+  opacity: 1;
+  transition: opacity 0.3s ease;
 }
 
-/* Status Header Layout */
+.view-section.hidden {
+  display: none;
+  opacity: 0;
+}
+
+/* =========================================
+   Headers & Navigation
+   ========================================= */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.settings-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.btn-nav {
+  margin-top: 15px;
+  background-color: #f0f0f0;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-nav:hover {
+  background-color: #e0e0e0;
+}
+
+/* =========================================
+   Unified Card Layout
+   ========================================= */
+.status-section,
+.exchange-section,
+.settings-section {
+  background-color: #161b22;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #30363d;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-section:hover,
+.exchange-section:hover,
+.settings-section:hover {
+  transform: translateY(-2px);
+  border-color: #58a6ff;
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+}
+
+.status-section h2,
+.exchange-section h3,
+.settings-section h3,
+.trading-header h3 {
+  font-size: 15px;
+  margin: 0;
+  color: #f0f6fc !important;
+  font-weight: 700;
+  border-left: 4px solid #58a6ff;
+  padding-left: 12px;
+  line-height: 1.2;
+}
+
 .status-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-}
-
-.status-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.status-section h2 {
-  font-size: 18px;
-  margin: 0;
-  color: #333;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: #ccc;
-  display: inline-block;
-}
-
-.status-dot.active {
-  background-color: #4caf50;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.status-text {
-  font-size: 16px;
-  font-weight: 500;
-  color: #666;
+  margin-bottom: 12px;
 }
 
 .assets-display {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #e0e0e0;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
 }
 
 .assets-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #666;
-  min-width: 120px;
-  flex-shrink: 0;
+  width: 60px;
 }
 
 .assets-value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #2196f3;
   text-align: right;
   flex: 1;
-  min-width: 0;
 }
 
-.price-container {
+/* =========================================
+   Buttons & Inputs
+   ========================================= */
+.btn {
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Icon Buttons */
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #777;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.btn-icon.small .material-icons {
+  font-size: 18px;
+}
+
+.btn-icon.btn-record .material-icons {
+  font-size: 20px;
+  color: #999;
+}
+
+/* Record Active State */
+.btn-icon.btn-record.recording .material-icons {
+  color: #f44336;
+  animation: pulse-red 1.5s infinite;
+}
+
+.btn-icon.btn-record.has-macro .material-icons {
+  color: #4caf50;
+}
+
+@keyframes pulse-red {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* =========================================
+   Trading Card Specifics
+   ========================================= */
+.trading-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Position Status Card Specific - Inherits unified card style */
+
+.position-status {
+  text-align: center;
+  padding: 12px 8px;
+  background-color: #0d1117;
+  border-radius: 6px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #8b949e;
+  font-style: italic;
+  border: 1px dashed #30363d;
+}
+
+.position-details {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 10px;
+  background: linear-gradient(to right, #1c2128, #161b22);
+  border-radius: 8px;
+  margin-top: 5px;
+  border-left: 4px solid #2f81f7;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.position-details .badge {
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: #30363d;
+  color: #c9d1d9;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pnl-value {
+  color: #28a745;
+  /* Green for PnL */
+}
+
+.pnl-value.negative {
+  color: #dc3545;
+  /* Red for negative PnL */
+}
+
+.position-details .value {
+  font-weight: 700;
+  font-size: 15px;
+  font-family: 'Roboto Mono', monospace;
+  /* Professional look for numbers */
+}
+
+/* Trading Tabs Row */
+.trading-tabs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 0 5px;
+}
+
+.role-tabs {
+  display: flex;
+  gap: 2px;
+  background: #0d1117;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+}
+
+.tab-btn {
+  padding: 8px 20px;
+  min-width: 85px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b949e;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #30363d;
+  color: #f0f6fc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tab-btn:hover:not(.active) {
+  background: rgba(48, 54, 61, 0.5);
+  color: #c9d1d9;
+}
+
+.type-tabs {
+  display: flex;
+  gap: 15px;
+}
+
+.type-tab {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.type-tab.active {
+  color: #58a6ff;
+  background: rgba(88, 166, 255, 0.1);
+  font-weight: 700;
+}
+
+.type-tab:hover:not(.active) {
+  color: #c9d1d9;
+  background: rgba(48, 54, 61, 0.5);
+}
+
+/* Radio Label replaced by tabs - can be removed if not used elsewhere */
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* Trading Controls Group */
+.trading-controls-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  justify-content: flex-end;
-  min-width: 0;
 }
 
-.sl-price-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: #f44336;
-  white-space: nowrap;
-  display: inline-block;
+/* Specific Button Colors */
+.btn-manual.btn-long {
+  background: linear-gradient(135deg, #238636, #2ea043);
+  color: white;
+  flex: 2;
+  border: none;
 }
 
-/* Exchange Selection Area */
-.exchange-selector {
+.btn-manual.btn-long:hover {
+  background: linear-gradient(135deg, #2ea043, #3fb950);
+  box-shadow: 0 0 15px rgba(46, 160, 67, 0.4);
+}
+
+.btn-manual.btn-short {
+  background: linear-gradient(135deg, #da3633, #f85149);
+  color: white;
+  flex: 2;
+  border: none;
+}
+
+.btn-manual.btn-short:hover {
+  background: linear-gradient(135deg, #f85149, #ff7b72);
+  box-shadow: 0 0 15px rgba(248, 81, 73, 0.4);
+}
+
+.btn-manual.btn-close {
+  background-color: #607d8b;
+  color: white;
+  flex: 1.5;
+  font-size: 12px;
+}
+
+/* Blue Grey */
+
+.btn-manual:hover {
+  opacity: 0.9;
+}
+
+/* =========================================
+   Settings Elements
+   ========================================= */
+.setting-item-row {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.setting-label {
+  font-size: 13px;
+  color: #555;
+  flex: 1;
+}
+
+.setting-input,
+.setting-select {
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex: 1;
+  max-width: 120px;
+  text-align: right;
 }
 
 /* Toggle Switch */
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 50px;
-  height: 26px;
-  cursor: pointer;
+  width: 40px;
+  height: 22px;
 }
 
 .toggle-switch input {
@@ -150,652 +466,94 @@ body {
   bottom: 0;
   background-color: #ccc;
   transition: .4s;
-  border-radius: 26px;
+  border-radius: 22px;
 }
 
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 20px;
-  width: 20px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
   background-color: white;
   transition: .4s;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider {
   background-color: #4caf50;
 }
 
-/* Record Toggle - 빨간색 배경 */
-#recordToggle:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider:before {
+  transform: translateX(18px);
+}
+
+/* Red Slider for Record */
+.red-slider {
+  background-color: #ccc;
+}
+
+#recordToggle:checked+.red-slider {
   background-color: #f44336;
 }
 
-.toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(24px);
-}
-
-.toggle-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #666;
-  margin-right: 10px;
-  white-space: nowrap;
-}
-
-.toggle-switch input:disabled + .toggle-slider {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Button Area */
-.button-section {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.btn {
-  flex: 1;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Save Footer */
+.save-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
 }
 
 .btn-start {
-  background-color: #4caf50;
+  background-color: #2196f3;
   color: white;
 }
 
-.btn-start:hover:not(:disabled) {
-  background-color: #45a049;
+.btn-start:hover {
+  background-color: #1976d2;
 }
 
-.btn-stop {
-  background-color: #f44336;
-  color: white;
-}
-
-.btn-stop:hover:not(:disabled) {
-  background-color: #da190b;
-}
-
-/* Exchange Selection Area */
-.exchange-section {
-  background-color: white;
-  padding: 12px; /* 15px → 12px로 줄임 */
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.exchange-section h3 {
-  font-size: 15px; /* 16px → 15px로 약간 줄임 */
-  margin-bottom: 8px; /* 10px → 8px로 줄임 */
-  color: #333;
-}
-
-/* 기존 exchange-section 내부의 exchange-selector 스타일 제거됨 */
-
-/* Setting Item Row Layout */
 .setting-item-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px; /* 12px → 8px로 간격 줄임 */
-  gap: 12px; /* 15px → 12px로 간격 줄임 */
-}
-
-.setting-item-row:last-child {
-  margin-bottom: 0;
-}
-
-/* TP Price Display는 항상 하단 여백 제거 */
-#simpleTpPriceDisplay,
-#trailingTpPriceDisplay,
-#splitTpPriceDisplay {
-  margin-bottom: 0 !important;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 12px;
 }
 
 .setting-label {
-  font-size: 13px; /* 14px → 13px로 약간 줄임 */
-  color: #666;
-  font-weight: 500;
-  min-width: 90px; /* 100px → 90px로 줄임 */
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.refresh-countdown {
-  font-size: 11px;
-  color: #2196f3;
+  font-size: 13px;
+  color: #8b949e;
   font-weight: 600;
-  margin-left: 5px;
+  white-space: nowrap;
 }
 
 .setting-input {
-  flex: 1;
-  max-width: 140px; /* 적절한 너비로 제한 */
-  padding: 6px 12px; /* 상하 패딩 줄임: 10px → 6px */
-  border: 1px solid #ddd;
+  padding: 8px 12px;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
   border-radius: 6px;
-  font-size: 13px; /* 14px → 13px로 약간 줄임 */
-  text-align: center;
-  background-color: white;
-  height: auto; /* 자동 높이 */
-  min-height: 28px; /* 최소 높이 설정 */
+  font-size: 14px;
+  color: #f0f6fc;
+  transition: all 0.2s;
+  width: auto;
+  min-width: 100px;
 }
 
 .setting-input:focus {
   outline: none;
-  border-color: #4caf50;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
 }
 
-/* TP Price Value - 읽기 전용 스타일 */
-.tp-price-value {
-  cursor: default;
-  background-color: white !important;
-  color: #4caf50 !important;
-  font-weight: 500;
-  user-select: none;
-  pointer-events: none;
-}
-
-.setting-select {
-  flex: 1;
-  max-width: 140px; /* 적절한 너비로 제한 */
-  padding: 6px 12px; /* 상하 패딩 줄임: 10px → 6px */
-  border: 1px solid #ddd;
+.telegram-input {
+  width: 100%;
+  padding: 8px;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
   border-radius: 6px;
-  font-size: 13px; /* 14px → 13px로 약간 줄임 */
-  background-color: white;
-  cursor: pointer;
-  height: auto; /* 자동 높이 */
-  min-height: 28px; /* 최소 높이 설정 */
-}
-
-.setting-select:focus {
-  outline: none;
-  border-color: #4caf50;
-}
-
-.exchange-dropdown {
-  flex: 3;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  background-color: white;
-  cursor: pointer;
-}
-
-.exchange-dropdown:focus {
-  outline: none;
-  border-color: #4caf50;
-}
-
-.btn-go {
-  background-color: #2196f3;
-  color: white;
-  flex: 1;
-  min-width: 50px;
-  max-width: 70px;
-}
-
-.btn-go:hover:not(:disabled) {
-  background-color: #1976d2;
-}
-
-/* Selector Extraction Area */
-.selector-section {
-  background-color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.selector-section h3 {
-  font-size: 16px;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.selector-controls {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-selector {
-  background-color: #ff9800;
-  color: white;
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-}
-
-.btn-selector:hover:not(:disabled) {
-  background-color: #f57c00;
-}
-
-.btn-load {
-  background-color: #4caf50;
-  color: white;
-}
-
-.btn-load:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
-.btn-save {
-  background-color: #f44336;
-  color: white;
-}
-
-.btn-save:hover:not(:disabled) {
-  background-color: #d32f2f;
-}
-
-.btn-clear {
-  background-color: #ff9800;
-  color: white;
-}
-
-.btn-clear:hover:not(:disabled) {
-  background-color: #f57c00;
-}
-
-/* Take Profit Settings */
-.tp-settings {
-  margin-top: 10px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.tp-settings h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #495057;
-  font-weight: 600;
-}
-
-/* Data Extraction Controls */
-.extraction-controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.extraction-controls .btn {
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-  transition: all 0.3s ease;
-  /* 기본 상태: 테두리만 */
-  background-color: transparent !important;
-  border: 2px solid #2196f3 !important;
-  color: #2196f3 !important;
-}
-
-.extraction-controls .btn:hover:not(:disabled) {
-  background-color: #f5f5f5 !important;
-  border-color: #2196f3 !important;
-  color: #2196f3 !important;
-}
-
-/* Extract 버튼들은 호버 시 반전 스타일 제거 */
-.extraction-controls .btn-selector.extracted:hover:not(:disabled) {
-  background-color: #1976d2 !important;
-  border-color: transparent !important;
-  color: white !important;
-}
-
-/* 데이터가 있을 때 채워진 스타일 */
-.extraction-controls .btn.has-data {
-  background-color: #2196f3;
-  color: white;
-  border: 2px solid #2196f3;
-}
-
-.extraction-controls .btn.has-data:hover:not(:disabled) {
-  background-color: #1976d2;
-  border-color: #1976d2;
-}
-
-/* Default state: outline only */
-.btn-selector {
-  background-color: transparent !important;
-  border: 2px solid #ddd !important;
-  color: #666 !important;
-}
-
-.btn-selector:hover:not(:disabled) {
-  border-color: #2196f3 !important;
-  color: #2196f3 !important;
-  background-color: #f5f5f5 !important;
-}
-
-/* Extracted state: filled with color */
-.btn-selector.extracted {
-  border: 2px solid transparent !important;
-  background-color: #2196f3 !important;
-  color: white !important;
-}
-
-.btn-selector.extracted:hover:not(:disabled) {
-  background-color: #1976d2 !important;
-  border-color: transparent !important;
-  color: white !important;
-}
-
-
-.btn-selector.btn-load {
-  background-color: #4caf50 !important;
-  color: white !important;
-  border: 2px solid transparent !important;
-}
-
-.btn-selector.btn-load:hover:not(:disabled) {
-  background-color: #45a049 !important;
-  border-color: transparent !important;
-  color: white !important;
-}
-
-.btn-selector.btn-save {
-  background-color: #f44336 !important;
-  color: white !important;
-  border: 2px solid transparent !important;
-}
-
-.btn-selector.btn-save:hover:not(:disabled) {
-  background-color: #d32f2f !important;
-  border-color: transparent !important;
-  color: white !important;
-}
-
-.btn-selector.btn-clear {
-  background-color: #ff9800 !important;
-  color: white !important;
-  border: 2px solid transparent !important;
-}
-
-.btn-selector.btn-clear:hover:not(:disabled) {
-  background-color: #f57c00 !important;
-  border-color: transparent !important;
-  color: white !important;
-}
-
-
-/* Manual Trading Controls */
-/* Trading Controls Section (Manual + Record) */
-.trading-controls-section {
-  margin-bottom: 0;
-}
-
-.trading-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.trading-header h3 {
-  margin: 0;
-}
-
-.trading-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.trading-controls-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.trading-controls-column {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.trading-controls-row {
-  display: flex;
-  gap: 10px;
-}
-
-.trading-controls-row .btn {
-  flex: 1;
-}
-
-.manual-controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.btn-manual {
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  box-sizing: border-box;
-  height: auto;
-  min-height: 36px;
-  line-height: 1.4;
-}
-
-.btn-manual.btn-long {
-  background-color: #4caf50;
-  color: white;
-}
-
-.btn-manual.btn-long:hover:not(:disabled) {
-  background-color: #388e3c;
-}
-
-.btn-manual.btn-short {
-  background-color: #f44336;
-  color: white;
-}
-
-.btn-manual.btn-short:hover:not(:disabled) {
-  background-color: #d32f2f;
-}
-
-.btn-manual.btn-sl {
-  background-color: #f44336;
-  color: white;
-}
-
-.btn-manual.btn-sl:hover:not(:disabled) {
-  background-color: #d32f2f;
-}
-
-.btn-manual.btn-close {
-  background-color: #ff5722;
-  color: white;
-}
-
-.btn-manual.btn-close:hover:not(:disabled) {
-  background-color: #e64a19;
-}
-
-/* Macro Recording Controls */
-.macro-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  margin-top: 10px;
-}
-
-/* Stop Loss & Close Controls */
-.sl-close-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-
-.btn-macro {
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-  transition: all 0.3s ease;
-  /* 기본 상태: 테두리만 */
-  background-color: transparent;
-  color: #666;
-  box-sizing: border-box;
-  height: auto;
-  min-height: 36px;
-  line-height: 1.4;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-macro.btn-long {
-  border: 2px solid #4caf50;
-  color: #4caf50;
-}
-
-.btn-macro.btn-long:hover:not(:disabled) {
-  background-color: #f5f5f5;
-}
-
-.btn-macro.btn-short {
-  border: 2px solid #f44336;
-  color: #f44336;
-}
-
-.btn-macro.btn-short:hover:not(:disabled) {
-  background-color: #f5f5f5;
-}
-
-.btn-sl-close {
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-  transition: all 0.3s ease;
-  /* 기본 상태: 테두리만 */
-  background-color: transparent;
-  color: #666;
-  box-sizing: border-box;
-  height: auto;
-  min-height: 36px;
-  line-height: 1.4;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-sl-close.btn-sl {
-  border: 2px solid #f44336;
-  color: #f44336;
-}
-
-.btn-sl-close.btn-sl:hover:not(:disabled) {
-  background-color: #f5f5f5;
-}
-
-.btn-sl-close.btn-close {
-  border: 2px solid #ff5722;
-  color: #ff5722;
-}
-
-.btn-sl-close.btn-close:hover:not(:disabled) {
-  background-color: #f5f5f5;
-}
-
-/* 매크로가 저장되었을 때 채워진 스타일 */
-.btn-macro.has-macro.btn-long {
-  background-color: #4caf50;
-  color: white;
-  border: 2px solid #4caf50;
-}
-
-.btn-macro.has-macro.btn-long:hover:not(:disabled) {
-  background-color: #388e3c;
-}
-
-.btn-macro.has-macro.btn-short {
-  background-color: #f44336;
-  color: white;
-  border: 2px solid #f44336;
-}
-
-.btn-macro.has-macro.btn-short:hover:not(:disabled) {
-  background-color: #d32f2f;
-}
-
-/* SL과 Close 버튼이 매크로가 저장되었을 때 채워진 스타일 */
-.btn-sl-close.has-macro.btn-sl {
-  background-color: #f44336;
-  color: white;
-  border: 2px solid #f44336;
-}
-
-.btn-sl-close.has-macro.btn-sl:hover:not(:disabled) {
-  background-color: #d32f2f;
-}
-
-.btn-sl-close.has-macro.btn-close {
-  background-color: #ff5722;
-  color: white;
-  border: 2px solid #ff5722;
-}
-
-.btn-sl-close.has-macro.btn-close:hover:not(:disabled) {
-  background-color: #e64a19;
-}
-
-/* SL/Close Button Styles */
-.btn-sl-close {
-  flex: 1;
-  font-size: 12px;
-  padding: 8px 10px;
-  transition: all 0.3s ease;
-  /* 기본 상태: 테두리만 */
-  background-color: transparent;
-  color: #666;
-}
-
-.btn-sl-close.btn-sl {
-  border: 2px solid #ff9800;
-  color: #ff9800;
-}
-
-.btn-sl-close.btn-sl:hover:not(:disabled) {
-  background-color: #f5f5f5;
+  color: #f0f6fc;
 }
 
 .btn-sl-close.btn-close {
@@ -831,45 +589,47 @@ body {
 
 /* Stop Loss & Take Profit Color Coding */
 .sl-setting {
-  border-left: 4px solid #f44336;
+  border-left: 4px solid #f85149;
   padding-left: 12px;
-  background: rgba(244, 67, 54, 0.05);
-  border-radius: 4px;
+  background: rgba(248, 81, 73, 0.05);
+  border-radius: 8px;
 }
 
 .sl-setting .setting-label {
-  color: #d32f2f;
-  font-weight: 500;
+  color: #ff7b72;
+  font-weight: 600;
 }
 
 .sl-input {
-  border: 1px solid #f44336 !important;
+  border: 1px solid #da3633 !important;
+  background-color: #0d1117 !important;
 }
 
 .sl-input:focus {
-  border-color: #d32f2f !important;
-  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2) !important;
+  border-color: #f85149 !important;
+  box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.2) !important;
 }
 
 .tp-setting {
-  border-left: 4px solid #4caf50;
+  border-left: 4px solid #2ea043;
   padding-left: 12px;
-  background: rgba(76, 175, 80, 0.05);
-  border-radius: 4px;
+  background: rgba(46, 160, 67, 0.05);
+  border-radius: 8px;
 }
 
 .tp-setting .setting-label {
-  color: #388e3c;
-  font-weight: 500;
+  color: #3fb950;
+  font-weight: 600;
 }
 
 .tp-input {
-  border: 1px solid #4caf50 !important;
+  border: 1px solid #238636 !important;
+  background-color: #0d1117 !important;
 }
 
 .tp-input:focus {
-  border-color: #388e3c !important;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+  border-color: #2ea043 !important;
+  box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.2) !important;
 }
 
 /* Remove number input spinners */
@@ -881,16 +641,19 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Split Input Styles */
-.position-inputs, .tp-inputs {
+.position-inputs,
+.tp-inputs {
   display: flex;
   gap: 4px;
   align-items: center;
 }
 
-.position-split, .tp-split {
+.position-split,
+.tp-split {
   width: 44px !important;
   max-width: 44px !important;
   padding: 6px 4px !important;
@@ -929,24 +692,27 @@ input[type="number"] {
 
 .data-card {
   flex: 1;
-  background: white;
+  background: #161b22;
   padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #30363d;
 }
 
 .data-label {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .data-value {
   font-size: 18px;
-  color: #333;
-  font-weight: 600;
+  color: #f0f6fc;
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
 }
 
 .btn-stop-selector {
@@ -959,19 +725,7 @@ input[type="number"] {
   background-color: #757575;
 }
 
-/* Settings Area */
-.settings-section {
-  background-color: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.settings-section h3 {
-  font-size: 16px;
-  margin-bottom: 15px;
-  color: #333;
-}
+/* Settings Area - Unified with other sections */
 
 .setting-item {
   display: flex;
@@ -980,21 +734,25 @@ input[type="number"] {
 }
 
 .setting-item label {
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: #8b949e;
   font-weight: 500;
 }
 
 .setting-item input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
   font-size: 14px;
+  color: #f0f6fc;
+  transition: all 0.2s;
 }
 
 .setting-item input:focus {
   outline: none;
-  border-color: #4caf50;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
 }
 
 .interval-help {
@@ -1112,3 +870,215 @@ input[type="number"] {
 }
 
 /* Responsive Layout */
+
+/* Leverage Section Styles (Redesigned) */
+.leverage-section {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.leverage-grid-container {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  /* Fixed width for input, rest for slider */
+  gap: 12px;
+  align-items: end;
+  /* Align to bottom so slider aligns with input */
+}
+
+.leverage-input-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leverage-header {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 2px;
+}
+
+.leverage-input-wrapper.compact {
+  /* White/Light Theme */
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0 8px;
+  height: 36px;
+  /* Match grid cell height */
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.leverage-number-input {
+  background: transparent;
+  border: none;
+  color: #333;
+  /* Dark text for light theme */
+  font-size: 15px;
+  font-weight: 600;
+  width: 100%;
+  text-align: right;
+  /* Right align number */
+  outline: none;
+  font-family: 'Roboto Mono', monospace;
+  padding-right: 4px;
+}
+
+.leverage-number-input:focus {
+  outline: none;
+}
+
+.leverage-suffix {
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.leverage-slider-col {
+  padding-bottom: 5px;
+  /* Adjust alignment */
+}
+
+.leverage-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Space between slider and ticks */
+}
+
+/* Slider Style (Light Theme Compatibility) */
+.leverage-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  /* Lighter track */
+  border-radius: 2px;
+  outline: none;
+  transition: opacity .2s;
+}
+
+.leverage-range-slider:hover {
+  opacity: 1;
+}
+
+.leverage-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #2196f3;
+  /* Primary color thumb */
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  /* Shadow for thumb */
+  transition: transform 0.1s;
+}
+
+.leverage-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #999;
+  padding: 0 2px;
+}
+
+/* Trading Control Buttons Unified Styles */
+.control-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.btn-manual {
+  position: relative;
+  flex: 1;
+  padding: 12px 5px;
+  font-weight: 700;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  overflow: visible;
+  /* Default: No Macro (Gray) */
+  background-color: #f0f0f0;
+  border: 1px solid #e0e0e0;
+  color: #aaa;
+  cursor: pointer;
+}
+
+/* Recording Mode Active Style */
+.recording-mode-active {
+  background-color: #fff1f0 !important;
+  border: 2px solid #f44336 !important;
+  color: #f44336 !important;
+  animation: recording-pulse 2s infinite;
+  box-shadow: 0 0 10px rgba(244, 67, 54, 0.2);
+}
+
+@keyframes recording-pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Macro Status Colors (Only applied when has-macro class is present) */
+.btn-manual.has-macro.btn-long {
+  background-color: #e6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+  /* Green */
+}
+
+.btn-manual.has-macro.btn-short {
+  background-color: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #f5222d;
+  /* Red */
+}
+
+.btn-manual:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-manual:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Indicators */
+.btn-manual.has-macro::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background-color: #52c41a;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.btn-manual.has-macro.btn-short::after {
+  background-color: #f5222d;
+}
