@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crypto Trading Bot</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="DynamicTable.css">
   <!-- Material Icons for buttons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
@@ -38,26 +39,34 @@
         </div>
       </div>
 
-      <!-- Status Display Area -->
+      <!-- Auto-Trading Control (Status Bar Style) -->
+      <div class="auto-trading-control">
+        <button id="autoTradingBtn" class="auto-trading-btn">
+          <span class="auto-trading-label">AUTO TRADING</span>
+          <div class="auto-trading-indicator">
+            <span class="auto-trading-status" id="autoTradingStatus">OFF</span>
+            <span class="pulse-dot"></span>
+          </div>
+        </button>
+        <!-- Hidden checkbox for compatibility -->
+        <input type="checkbox" id="tradingToggle" style="display: none;" />
+      </div>
+
       <!-- Status Display Area (Redesigned) -->
       <div class="status-section">
         <div class="status-header">
-          <h2 data-lang="dashboard">Dashboard</h2>
+          <h2><span data-lang="dashboard">Dashboard</span> <span id="detectedSymbolContainer"
+              style="font-size: 0.8em; opacity: 0.7; font-weight: normal; margin-left: 5px;">(<span
+                id="detectedSymbol">-</span>)</span></h2>
           <div class="status-controls">
             <!-- Reset Button being added near toggle -->
-            <button id="resetSelectorsBtn" class="btn-icon small warning" title="Reset Selectors"
-              style="margin-right: 8px;">
+            <button id="resetSelectorsBtn" class="btn-icon small warning" title="Reset Selectors">
               <i class="material-icons" style="font-size: 16px;">restart_alt</i>
             </button>
-            <span class="toggle-label" data-lang="auto_trading">Auto</span>
-            <label class="toggle-switch">
-              <input type="checkbox" id="tradingToggle" />
-              <span class="toggle-slider"></span>
-            </label>
           </div>
         </div>
 
-        <!-- 2x2 Grid Layout -->
+        <!-- 2x2 Grid Layout -> Extended to 2x4 -->
         <div class="status-grid">
           <div class="grid-item">
             <div class="grid-header" data-lang="current_assets">Assets</div>
@@ -72,16 +81,36 @@
             <div class="grid-cell">
               <div class="price-wrapper">
                 <span id="currentPrice" class="value-text">-</span>
-                <span id="stopLossPrice" class="sl-subtext" style="display: none;">(-)</span>
               </div>
               <button id="extractPriceBtn" class="btn-extract" data-lang="extract">Extract</button>
             </div>
           </div>
 
+
+
           <div class="grid-item">
-            <div class="grid-header" data-lang="calculated_amount">Qty</div>
+            <div class="grid-header" data-lang="calculated_amount">Max Qty</div>
             <div class="grid-cell">
               <span id="currentAmount" class="value-text">-</span>
+            </div>
+          </div>
+
+          <div class="grid-item">
+            <div class="grid-header" data-lang="pos_entry">Entry</div>
+            <div class="grid-cell">
+              <span id="dashboardEntryPrice" class="value-text">-</span>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="grid-header" data-lang="pos_tp">TP Target</div>
+            <div class="grid-cell">
+              <span id="dashboardTpPrice" class="value-text">-</span>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="grid-header" data-lang="pos_sl">SL Trigger</div>
+            <div class="grid-cell">
+              <span id="dashboardSlPrice" class="value-text">-</span>
             </div>
           </div>
         </div>
@@ -114,20 +143,8 @@
         </div>
       </div>
 
-      <div class="exchange-section" id="positionCard">
-        <h3 data-lang="position_status">Position Status</h3>
-        <div id="positionStatus" class="position-status placeholder-text">
-          No Active Position
-        </div>
-        <div id="activePositionDetails" class="position-details hidden">
-          <span id="posSymbol" class="badge">BTC</span>
-          <span id="posSide" class="badge">LONG</span>
-          <span id="posPnl" class="value pnl-value">0.00%</span>
-          <span id="posSize" class="value text-muted">0.0</span>
-        </div>
-      </div>
 
-      <!-- Trading Settings Card -->
+      <!-- Action Console Card -->
       <div class="exchange-section">
         <div class="trading-header">
           <h3 data-lang="trading_settings">Action Console</h3>
@@ -147,8 +164,8 @@
             <button class="tab-btn" id="tabClose" data-lang="close">Close</button>
           </div>
           <div class="type-tabs">
-            <span class="type-tab active" id="typeLimit" data-lang="limit">Limit</span>
-            <span class="type-tab" id="typeMarket" data-lang="market">Market</span>
+            <!-- Limit Tab Removed -->
+            <span class="type-tab active" id="typeMarket" data-lang="market">Market</span>
           </div>
         </div>
 
@@ -161,113 +178,64 @@
         </div>
       </div>
 
+      <!-- Position Status Card Removed (Merged into Trading Options) -->
+
       <!-- Trading Options Card -->
       <div class="exchange-section">
-        <h3 data-lang="trading_options">Trading Options</h3>
+        <div class="trading-header">
+          <h3 data-lang="trading_options">Trading Options</h3>
+        </div>
 
-        <!-- Trading Style Dropdown (New) -->
+        <!-- 기본 설정 -->
         <div class="setting-item-row">
-          <div class="setting-label" data-lang="style">Style</div>
-          <select id="tradingStyleSelect" class="setting-input">
-            <option value="standard" data-lang="standard">Standard</option>
-            <option value="martingale" data-lang="martingale">Martingale</option>
-            <option value="fixed_risk" data-lang="fixed_risk">Fixed Risk %</option>
-            <option value="smart_dca" data-lang="smart_dca">Smart DCA</option>
-            <option value="pyramiding" data-lang="pyramiding">Pyramiding</option>
-            <option value="twap" data-lang="twap">TWAP</option>
-            <option value="box_control" data-lang="box_control">Box Control</option>
+          <div class="setting-label">자본금 사용 비중 (%)</div>
+          <input type="number" id="balanceUsage" min="1" max="100" value="100" step="1" class="setting-input" />
+        </div>
+
+
+        <div class="setting-item-row">
+          <div class="setting-label">Long 트리거</div>
+          <input type="text" id="longTrigger" class="setting-input" placeholder="LONG"
+            style="text-transform: uppercase;" />
+        </div>
+
+        <div class="setting-item-row">
+          <div class="setting-label">Short 트리거</div>
+          <input type="text" id="shortTrigger" class="setting-input" placeholder="SHORT"
+            style="text-transform: uppercase;" />
+        </div>
+
+        <!-- 청산(Liquidation) 트리거 설정 -->
+        <div class="setting-item-row">
+          <div class="setting-label" data-lang="liq_trigger">Liquidation Trigger</div>
+          <input type="text" id="liqTrigger" class="setting-input" placeholder="Liquidation" />
+        </div>
+
+        <div class="setting-item-row">
+          <div class="setting-label" data-lang="liq_close_position">Close Position on Liquidation</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="liqClosePosition" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- 진입 설정 테이블 -->
+        <div class="table-section" style="margin-top: 24px;">
+          <div id="entryTableContainer"></div>
+        </div>
+
+        <!-- TP 청산 계산 모드 -->
+        <div class="setting-item-row" style="margin-top: 16px;">
+          <div class="setting-label">TP 청산 기준</div>
+          <select id="tpCalculationMode" class="setting-input left-align">
+            <option value="total">총 포지션</option>
+            <option value="filled">보유 포지션</option>
           </select>
         </div>
 
-
-
-        <!-- Standard Position Mode -->
-        <div id="standardPositionSettings" class="setting-group">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="position_percent">Position (%)</div>
-            <div class="position-inputs">
-              <input type="number" id="position1" min="0" max="100" value="100" step="0.1"
-                class="setting-input position-split" />
-              <input type="number" id="position2" min="0" max="100" value="0" step="0.1"
-                class="setting-input position-split" />
-              <input type="number" id="position3" min="0" max="100" value="0" step="0.1"
-                class="setting-input position-split" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Martingale Position Mode -->
-        <div id="martingalePositionSettings" class="setting-group hidden">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="base_order">Base Order (%)</div>
-            <input type="number" id="martingaleBase" min="0.1" max="100" value="10" step="0.1" class="setting-input" />
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="multiplier">Multiplier (x)</div>
-            <input type="number" id="martingaleMultiplier" min="1" max="10" value="2.0" step="0.1"
-              class="setting-input" />
-          </div>
-          <button id="applyMartingaleBtn" class="btn btn-selector full-width">Apply Calculation</button>
-        </div>
-
-        <!-- Fixed Risk Mode -->
-        <div id="fixedRiskSettings" class="setting-group hidden">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="risk_per_trade">Risk per Trade (%)</div>
-            <input type="number" id="riskPerTrade" min="0.1" max="100" value="1.0" step="0.1" class="setting-input" />
-          </div>
-        </div>
-
-        <!-- Smart DCA Mode -->
-        <div id="smartDcaSettings" class="setting-group hidden">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="max_safety_orders">Max Safety Orders</div>
-            <input type="number" id="maxSafetyOrders" min="1" max="10" value="3" class="setting-input" />
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="price_deviation">Price Deviation (%)</div>
-            <input type="number" id="priceDeviation" min="0.1" max="20" value="2.0" step="0.1" class="setting-input" />
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="step_volume_scale">Step Volume Scale</div>
-            <input type="number" id="stepVolumeScale" min="1" max="5" value="1.5" step="0.1" class="setting-input" />
-          </div>
-        </div>
-
-        <!-- Pyramiding Mode -->
-        <div id="pyramidingSettings" class="setting-group hidden">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="add_step_percent">Add Step (%)</div>
-            <input type="number" id="addStepPercent" min="0.1" max="50" value="3.0" step="0.1" class="setting-input" />
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="add_amount_percent">Add Amount (%)</div>
-            <input type="number" id="addAmountPercent" min="1" max="100" value="50" step="1" class="setting-input" />
-          </div>
-        </div>
-
-        <!-- TWAP Mode -->
-        <div id="twapSettings" class="setting-group hidden">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="total_duration_min">Total Duration (min)</div>
-            <input type="number" id="totalDurationMin" min="1" max="1440" value="10" class="setting-input" />
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="order_slices">Order Slices</div>
-            <input type="number" id="orderSlices" min="2" max="100" value="5" class="setting-input" />
-          </div>
-        </div>
-
-        <!-- Box Control Mode -->
-        <div id="boxControlSettings" class="setting-group hidden">
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="upper_limit">Upper Limit</div>
-            <input type="number" id="boxUpperLimit" step="0.00000001" class="setting-input" placeholder="Price" />
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-label" data-lang="lower_limit">Lower Limit</div>
-            <input type="number" id="boxLowerLimit" step="0.00000001" class="setting-input" placeholder="Price" />
-          </div>
+        <!-- TP 설정 테이블 -->
+        <div class="table-section" style="margin-top: 8px;">
+          <div id="tpTableContainer"></div>
         </div>
 
         <!-- Stop Loss Settings -->
@@ -277,52 +245,9 @@
             class="setting-input sl-input" />
         </div>
 
-        <!-- Take Profit Strategy -->
-        <div class="setting-item-row tp-setting">
-          <div class="setting-label" data-lang="select_strategy">TP Strategy</div>
-          <select id="tpStrategySelect" class="setting-input tp-input">
-            <option value="simple" data-lang="simple_tp">Simple TP</option>
-            <option value="trailing" data-lang="trailing_tp">Trailing TP</option>
-            <option value="split" data-lang="split_tp">Split TP</option>
-            <option value="strategy" data-lang="strategy_tp">Strategy Signal</option>
-          </select>
-        </div>
+        <!-- TP Strategy Removed - Using DynamicTable -->
 
-        <!-- TP Settings Sub-sections (Keep existing) -->
-        <div id="simpleTpSettings" class="setting-item-row tp-setting">
-          <div class="setting-label" data-lang="take_profit_percent">Take Profit (%)</div>
-          <input type="number" id="simpleTpValue" min="0" max="1000" value="5" step="0.1"
-            class="setting-input tp-input" />
-        </div>
-        <div class="setting-item-row tp-setting" id="simpleTpPriceDisplay" style="display: none;">
-          <div class="setting-label">TP Price</div>
-          <div class="setting-input tp-input tp-price-value" id="simpleTpPriceValue">-</div>
-        </div>
 
-        <div id="trailingTpSettings" class="setting-item-row tp-setting" style="display: none;">
-          <div class="setting-label" data-lang="trailing_distance">Trailing Dist</div>
-          <input type="number" id="trailingDistance" min="0" value="0" step="0.01" class="setting-input tp-input" />
-        </div>
-        <div class="setting-item-row tp-setting" id="trailingTpPriceDisplay" style="display: none;">
-          <div class="setting-label">TP Price</div>
-          <div class="setting-input tp-input tp-price-value" id="trailingTpPriceValue">-</div>
-        </div>
-
-        <div id="splitTpSettings" class="setting-item-row tp-setting" style="display: none;">
-          <div class="setting-label" data-lang="split_tp_percent">Split TP (%)</div>
-          <div class="tp-inputs">
-            <input type="number" id="splitTp1" min="0" max="100" value="33.33" step="0.1"
-              class="setting-input tp-split" />
-            <input type="number" id="splitTp2" min="0" max="100" value="33.33" step="0.1"
-              class="setting-input tp-split" />
-            <input type="number" id="splitTp3" min="0" max="100" value="33.34" step="0.1"
-              class="setting-input tp-split" />
-          </div>
-        </div>
-        <div class="setting-item-row tp-setting" id="splitTpPriceDisplay" style="display: none;">
-          <div class="setting-label">TP Price</div>
-          <div class="setting-input tp-input tp-price-value" id="splitTpPriceValue">-</div>
-        </div>
       </div>
 
       <!-- Navigation to Settings -->
@@ -361,45 +286,57 @@
           <input type="number" id="autoRefreshInterval" min="0" max="100" value="0" step="1" class="setting-input"
             data-lang="auto_refresh_minutes" placeholder="0" />
         </div>
+
+        <!-- TV Timeframe (Moved) -->
+        <div class="setting-item-row">
+          <div class="setting-label">TV 분석 주기</div>
+          <select id="tvTimeframe" class="setting-input left-align">
+            <option value="1m">1분봉</option>
+            <option value="5m">5분봉</option>
+            <option value="15m" selected>15분봉</option>
+            <option value="1h">1시간봉</option>
+            <option value="4h">4시간봉</option>
+            <option value="1D">1일봉</option>
+          </select>
+        </div>
       </div>
 
       <!-- Telegram Settings -->
       <div class="exchange-section">
-        <h3 data-lang="telegram_settings">Telegram Integration</h3>
-        <div class="telegram-integration">
-          <div class="setting-item-row">
-            <button id="copyWebhookUrl" class="btn btn-test" data-lang="url">Copy URL</button>
-            <button id="testTelegramConnection" class="btn btn-test" data-lang="test">Test Msg</button>
-          </div>
-
-          <div class="input-group">
-            <label for="botToken" data-lang="bot_token">Bot Token</label>
-            <input type="password" id="botToken" class="telegram-input" placeholder="Token">
-          </div>
-
-          <div class="input-group">
-            <label for="chatId" data-lang="chat_id">Chat ID</label>
-            <input type="text" id="chatId" class="telegram-input" placeholder="Chat ID">
-          </div>
-
-          <div class="input-group">
-            <label for="userSymbol" data-lang="trading_trigger">Trigger Symbol</label>
-            <input type="text" id="userSymbol" class="telegram-input" placeholder="BTC">
-          </div>
-
-          <div id="telegramStatusMessage" class="status-message"></div>
+        <div class="trading-header">
+          <h3 data-lang="telegram_settings">Telegram Integration</h3>
+          <button id="testTelegramConnection" class="btn btn-test" data-lang="test">Test Msg</button>
         </div>
+
+        <div class="input-group">
+          <label for="botToken" data-lang="bot_token">Bot Token</label>
+          <input type="password" id="botToken" class="telegram-input" placeholder="Token">
+        </div>
+
+        <div class="input-group">
+          <label for="chatId" data-lang="chat_id">Chat ID</label>
+          <input type="text" id="chatId" class="telegram-input" placeholder="Chat ID">
+        </div>
+
+        <div class="input-group">
+          <label for="userSymbol" data-lang="trading_trigger">Trigger Symbol</label>
+          <input type="text" id="userSymbol" class="telegram-input" placeholder="BTC">
+        </div>
+
+        <div id="telegramStatusMessage" class="status-message"></div>
       </div>
 
       <!-- API Settings (New) -->
       <div class="exchange-section">
-        <h3>API Fallback (Beta)</h3>
-        <div class="setting-item-row">
-          <div class="setting-label">Use Fallback</div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="apiFallbackToggle" />
-            <span class="toggle-slider"></span>
-          </label>
+        <div class="trading-header">
+          <h3 data-lang="api_fallback">API Fallback</h3>
+          <div class="trading-controls">
+            <span class="toggle-label">Use Fallback</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="apiFallbackToggle" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
         <div class="input-group">
           <label>API Key</label>
@@ -413,23 +350,29 @@
 
       <!-- Data Management -->
       <div class="exchange-section">
-        <h3>Data Management</h3>
+        <h3 data-lang="data_management">Data Management</h3>
         <div class="extraction-controls">
-          <button id="loadDataBtn" class="btn btn-selector btn-load" data-lang="load_data">Load</button>
-          <button id="clearDataBtn" class="btn btn-selector btn-clear" data-lang="clear_data">Clear</button>
+          <button id="saveDataBtn" class="btn btn-save" data-lang="save_data">내보내기 (JSON)</button>
+          <button id="loadDataBtn" class="btn btn-load" data-lang="load_data">가져오기 (JSON)</button>
+          <button id="clearDataBtn" class="btn btn-clear" data-lang="clear_data">초기화</button>
           <input type="file" id="saveFileInput" accept=".json" style="display: none;">
         </div>
       </div>
 
-      <!-- Global Save Button -->
-      <div class="save-footer">
-        <button id="saveGlobalSettingsBtn" class="btn btn-start full-width" data-lang="save_data">SAVE ALL
-          SETTINGS</button>
+      <div class="exchange-section" style="margin-top: 20px; border-top: 1px solid #30363d; padding-top: 15px;">
+        <button id="saveGlobalSettingsBtn" class="btn btn-primary full-width" style="background-color: #238636;">
+          <i class="material-icons" style="font-size: 18px; vertical-align: middle;">save</i>
+          <span style="vertical-align: middle; margin-left: 5px;">현재 설정 저장 (Apply)</span>
+        </button>
       </div>
 
     </div> <!-- End Settings View -->
 
   </div> <!-- End Container -->
+
+  <!-- Load DynamicTable component first -->
+  <script src="DynamicTable.js"></script>
+  <script src="table-init.js"></script>
 
   <script src="../utils/language.js"></script>
   <script src="../utils/telegram.js"></script>
@@ -438,8 +381,14 @@
   <script src="../utils/StorageUtils.js"></script>
   <script src="../utils/DOMUtils.js"></script>
   <script src="../utils/DataExtractor.js"></script>
+  <script src="../utils/TradingViewManager.js"></script>
   <script src="../utils/TelegramManager.js"></script>
   <script src="../utils/ExchangeManager.js"></script>
+  <script src="../utils/PositionManager.js"></script>
+  <script src="utils_sl.js"></script>
+  <script src="auto-trading-logic.js"></script>
+  <script src="executeSmartTradeWithTelegram.js"></script>
+  <script src="telegram-signal-handler.js"></script>
   <script src="popup.js"></script>
 </body>
 
